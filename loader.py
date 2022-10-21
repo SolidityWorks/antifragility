@@ -1,4 +1,4 @@
 orm_params = {
     "db_url": "postgres://artemiev:@/antifragility",
-    "modules": {"models": ["models"]},
+    "modules": {"models": ["db.models"]},
 }

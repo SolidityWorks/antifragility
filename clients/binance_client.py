@@ -1,5 +1,7 @@
 import aiohttp
 
+from db.models import User
+
 gap = 0.01
 URL_SRC = 'https://c2c.binance.com/bapi/c2c/v2/friendly/c2c/adv/search'
 prgrs = '/', '-', '\\', '|'
@@ -7,7 +9,7 @@ prgrs = '/', '-', '\\', '|'
 bnks = 'banks', 'ym', 'qiwi'
 
 
-async def breq(path: str, user: dict = None, data=None, is_post=True):
+async def breq(path: str, user: User = None, data=None, is_post=True):
     headers = {
         'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/103.0.5060.134 Safari/537.36',
         'Content-Type': 'application/json',
@@ -15,8 +17,8 @@ async def breq(path: str, user: dict = None, data=None, is_post=True):
     }
     if user:
         headers.update({
-            'csrftoken': user['tok'],
-            'cookie': f'p20t=web.{user["key"]}.{user["cook"]}',
+            'csrftoken': user.auth['tok'],
+            'cookie': f'p20t=web.{user.id}.{user.auth["cook"]}',
         })
     async with aiohttp.ClientSession() as session:
         reqf = session.post if is_post else session.get
@@ -38,7 +40,7 @@ async def ping(user: dict):
 #         users_db.update({'ran': False}, user['key'])
 
 
-async def get_pts(user: dict):  # payment methods
+async def get_pts(user: User):  # payment methods
     res = await breq('bapi/c2c/v2/private/c2c/pay-method/user-paymethods', user, {})
     return res['data']
 
@@ -56,9 +58,9 @@ async def balance(user: dict, spot0fond1: 0 | 1 = 1):  # payment methods
     return res['data'][spot0fond1]['assetBalances'] if res.get('data') else None
 
 
-async def get_ads(asset: str, cur: str, sell: int = 0, pts: [str] = None):
+async def get_ads(asset: str, cur: str, sell: int = 0, pts: [str] = None, rows: int = 2, page: int = 1):
     payload = {"page": 1,
-               "rows": 2,
+               "rows": rows,
                "payTypes": pts,
                "asset": asset,
                "tradeType": "SELL" if sell else "BUY",

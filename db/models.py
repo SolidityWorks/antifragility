@@ -29,6 +29,7 @@ class ExType(Enum):
 
 class Cur(Model):
     id: str = fields.CharField(3, pk=True)
+    pts: fields.ManyToManyRelation["Pt"]
 
 
 class Coin(Model):
@@ -51,21 +52,23 @@ class Pair(Model):
     fee: float = fields.FloatField()
 
 
-class Client(Model):
-    id: int = fields.SmallIntField(pk=True)
-    tg_id: int = fields.IntField()
-    status: ClientStatus = fields.IntEnumField(ClientStatus)
-
-    def __str__(self):
-        return f"User #{self.id}({self.status}) tg:{self.tg_id}"
-
-
 class User(Model):
     id: int = fields.IntField(pk=True)
     ex: fields.ForeignKeyRelation[Ex] = fields.ForeignKeyField("models.Ex", related_name="users")
-    auths: {} = fields.JSONField(null=True)  # todo: think about it - where move this attr in
-    client: fields.ForeignKeyNullableRelation[Client] = fields.ForeignKeyField("models.Client", related_name="users")
-    is_active: bool = fields.BooleanField(default=True)
+    auth: {} = fields.JSONField(null=True)  # todo: think about it - where move this attr in
+    client: fields.ForeignKeyNullableRelation["Client"] = fields.ForeignKeyField("models.Client", related_name="users", null=True)
+    is_active: bool = fields.BooleanField(default=True, null=True)
+
+
+class Client(Model):
+    id: int = fields.SmallIntField(pk=True)
+    tg_id: int = fields.IntField(null=True)
+    gmail: str = fields.CharField(31)
+    status: ClientStatus = fields.IntEnumField(ClientStatus)
+    users: fields.ForeignKeyRelation["User"]
+
+    def __str__(self):
+        return f"User #{self.id}({self.status}) tg:{self.tg_id}"
 
 
 class Ad(Model):
@@ -81,18 +84,20 @@ class Ad(Model):
 
 class Pt(Model):
     name: str = fields.CharField(31, pk=True)
-    rank = fields.SmallIntField()
+    rank = fields.SmallIntField(default=0)
+    curs: fields.ManyToManyRelation[Cur] = fields.ManyToManyField("models.Cur", related_name="pts")
     ads: fields.ManyToManyRelation[Ad]
     fiats: fields.ManyToManyRelation["Fiat"]
 
 
 class Fiat(Model):
     id: int = fields.IntField(pk=True)
-    pt: fields.ManyToManyRelation[Pt] = fields.ManyToManyField("models.Pt", "limit", related_name="fiats")
-    cur: fields.ForeignKeyRelation[Cur] = fields.ForeignKeyField("models.Cur", related_name="pts")
+    pt: fields.ForeignKeyRelation[Pt] = fields.ForeignKeyField("models.Pt", related_name="fiats")
+    detail: str = fields.CharField(127)
+    pts_able: fields.ManyToManyRelation[Pt] = fields.ManyToManyField("models.Pt", "limit", related_name="fiats_able")
     client: fields.ForeignKeyRelation[Client] = fields.ForeignKeyField("models.Client", "fiats")
-    amount: float = fields.FloatField()
-    target: float = fields.FloatField()
+    amount: float = fields.FloatField(default=0, null=True)
+    target: float = fields.FloatField(default=0, null=True)
 
 
 class Limit(Model):
