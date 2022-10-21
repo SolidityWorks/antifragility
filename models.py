@@ -1,4 +1,4 @@
-from enum import IntEnum  # , Enum
+from enum import IntEnum, Enum
 
 from tortoise import Model, fields
 
@@ -19,6 +19,14 @@ class OrderStatus(IntEnum):
     done = 3
 
 
+class ExType(Enum):
+    main = "main"
+    dex = "dex"
+    other = "other"
+    futures = "futures"
+    p2p = "p2p"
+
+
 class Cur(Model):
     id: str = fields.CharField(3, pk=True)
 
@@ -30,6 +38,7 @@ class Coin(Model):
 class Ex(Model):
     id: int = fields.SmallIntField(pk=True)
     name: str = fields.CharField(31)
+    type: ExType = fields.CharEnumField(ExType)
 
 
 class Pair(Model):
@@ -54,9 +63,9 @@ class Client(Model):
 class User(Model):
     id: int = fields.IntField(pk=True)
     ex: fields.ForeignKeyRelation[Ex] = fields.ForeignKeyField("models.Ex", related_name="users")
-    auths: {} = fields.JSONField()
+    auths: {} = fields.JSONField(null=True)  # todo: think about it - where move this attr in
     client: fields.ForeignKeyNullableRelation[Client] = fields.ForeignKeyField("models.Client", related_name="users")
-    is_active: bool = fields.BooleanField()
+    is_active: bool = fields.BooleanField(default=True)
 
 
 class Ad(Model):
@@ -70,31 +79,32 @@ class Ad(Model):
     updated_at = fields.DatetimeField(auto_now=True)
 
 
-class PtGroup(Model):
-    id: int = fields.SmallIntField(pk=True)
-    name: str = fields.CharField(31)
-    cur: fields.ForeignKeyRelation[Cur] = fields.ForeignKeyField("models.Cur", related_name="pt_groups")
-
-
 class Pt(Model):
-    id: str = fields.CharField(31, pk=True)
-    group: fields.ForeignKeyRelation[PtGroup] = fields.ForeignKeyField("models.PtGroup", related_name="pts")
+    name: str = fields.CharField(31, pk=True)
     rank = fields.SmallIntField()
     ads: fields.ManyToManyRelation[Ad]
+    fiats: fields.ManyToManyRelation["Fiat"]
 
 
 class Fiat(Model):
     id: int = fields.IntField(pk=True)
+    pt: fields.ManyToManyRelation[Pt] = fields.ManyToManyField("models.Pt", "limit", related_name="fiats")
+    cur: fields.ForeignKeyRelation[Cur] = fields.ForeignKeyField("models.Cur", related_name="pts")
     client: fields.ForeignKeyRelation[Client] = fields.ForeignKeyField("models.Client", "fiats")
-    pt: fields.ForeignKeyRelation[Pt] = fields.ForeignKeyField("models.Pt", "fiats")
     amount: float = fields.FloatField()
     target: float = fields.FloatField()
+
+
+class Limit(Model):
+    fiat: fields.ForeignKeyRelation[Fiat] = fields.ForeignKeyField("models.Fiat", related_name="limits")
+    pt: fields.ForeignKeyRelation[Pt] = fields.ForeignKeyField("models.Pt", related_name="limits")
+    limit: int = fields.IntField()
 
 
 class Order(Model):
     id: int = fields.BigIntField(pk=True)
     ad: fields.ForeignKeyRelation[Ad] = fields.ForeignKeyField("models.Pair", related_name="orders")
-    pt: fields.ForeignKeyRelation[Pt] = fields.ForeignKeyField("models.Pt", related_name="orders")
+    limit: fields.ForeignKeyRelation[Limit] = fields.ForeignKeyField("models.Limit", related_name="orders")
     user: fields.ForeignKeyRelation = fields.ForeignKeyField("models.User", "orders")
     status: OrderStatus = fields.IntEnumField(OrderStatus)
     created_at = fields.DatetimeField(auto_now_add=True)

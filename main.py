@@ -2,6 +2,7 @@
 from aiohttp import web
 from tortoise.contrib.aiohttp import register_tortoise
 
+from loader import orm_params
 from models import User
 
 # logging.basicConfig(level=logging.DEBUG)
@@ -18,16 +19,12 @@ async def add_user(request):
 
 
 app = web.Application()
+register_tortoise(app, **orm_params)
+
 app.add_routes([
     web.get("/", list_all),
     web.post("/user", add_user)
 ])
-register_tortoise(
-    app,
-    db_url="postgres://artemiev:@/antifragility",
-    modules={"models": ["models"]},
-    generate_schemas=True
-)
 
 if __name__ == "__main__":
     web.run_app(app)
