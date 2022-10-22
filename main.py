@@ -17,8 +17,8 @@ async def list_all(request):
 
 async def add_user(request: Request):
     data = await request.json()
-    res = await user_upd_bc(**data)
-    return web.json_response(res)
+    user: User = await user_upd_bc(**data)
+    return web.json_response({'ok': user.uid})
 
 
 app = web.Application()

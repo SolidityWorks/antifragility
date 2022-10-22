@@ -18,7 +18,7 @@ async def breq(path: str, user: User = None, data=None, is_post=True):
     if user:
         headers.update({
             'csrftoken': user.auth['tok'],
-            'cookie': f'p20t=web.{user.id}.{user.auth["cook"]}',
+            'cookie': f'p20t=web.{user.uid}.{user.auth["cook"]}',
         })
     async with aiohttp.ClientSession() as session:
         reqf = session.post if is_post else session.get
@@ -67,5 +67,4 @@ async def get_ads(asset: str, cur: str, sell: int = 0, pts: [str] = None, rows: 
                "fiat": cur,
                # "transAmount": amount
                }
-    resp = await breq(URL_SRC, None, payload)
-    return resp.get('data') or resp
+    return await breq(URL_SRC, None, payload)
