@@ -1,3 +1,5 @@
+from tortoise.expressions import Q
+
 from clients.binance_client import get_pts, get_ads
 from db.models import User, Client, ClientStatus, Ex, Found, Cur, Coin, Pair, Price, Ad, Pt
 
@@ -45,7 +47,7 @@ async def seed_pts():
 async def ad_add(res):
     adv = res['data'][0]['adv']
     unq = {'coin_id': adv['asset'], 'cur_id': adv['fiatUnit'], 'sell': adv['tradeType'] != 'SELL', 'ex_id': 1}
-    add = {'fee': adv['commissionRate'], 'last_price': float(adv['price']), 'total': res.get('total')}
+    add = {'fee': adv['commissionRate'], 'last_price': float(adv['price']), 'total': res['total']}
     if pair := await Pair.get_or_none(**unq):
         # noinspection PyAsyncCall
         pair.update_from_dict(add)
@@ -63,6 +65,7 @@ async def ad_add(res):
     # ad
     idd = int(adv['advNo']) - 10 ** 19
     props = {
+        'id': idd,
         'pair': pair,
         'user': user,
         'price': adv['price'],
@@ -70,9 +73,11 @@ async def ad_add(res):
         'maxFiat': float(adv['dynamicMaxSingleTransAmount']),
     }
     if ad := await Ad.get_or_none(id=idd):
-        await ad.update_from_dict(props)
+        await ad.update_from_dict(props).save()
     else:
-        ad = await Ad.create(id=idd, **props)
+        if ad := await Ad.get_or_none(pair=pair):
+            await ad.delete()
+        ad = await Ad.create(**props)
     # ad_pt
     pts = [(await Pt.get_or_create(name=a['identifier']))[0] for a in adv['tradeMethods']]
     await ad.pts.add(*pts)
