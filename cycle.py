@@ -4,7 +4,7 @@ from tortoise import Tortoise
 from clients.binance_client import get_ads
 from db.update import ad_add
 from loader import orm_params
-from db.models import Cur, Coin, Pt, Client, User, ClientStatus, Pair, Ex, Ad
+from db.models import User, ClientStatus, Pair
 
 
 async def cycle():
@@ -21,21 +21,6 @@ async def tick(pairs: [Pair]):
     for pair in pairs:
         if (res := await get_ads(pair.coin_id, pair.cur_id, pair.sell, None, 2)).get('data'):  # if isSell else [pt.name for pt in pts])
             await ad_add(res)
-            #     unq = {k: v for k, v in ad0.items() if k in ['coin', 'cur', 'is_sell', 'ex']}
-            #
-            #     if ad0['id'] in ids:
-            #         ad0['updated_at'] = datetime.now()
-            #         Ad.get(**unq).set(**ad0)
-            #     else:
-            #         if ba := Ad.get(**unq):
-            #             ba.delete()
-            #         Ad(**ad0)
-            #
-            #     key = f"{coin}{cur.name}{('f', 't')[isSell]}"
-            #     if last_price.get(key) != ad0['price']:
-            #         p = Prices(res[0]['adv'], ad0['pts'], 'bc2c')
-            #         Price(**p.__dict__)
-            #
             #     ads[key] = [{"x": time()*1000, "y": ad0['price']}]  # ad0['id'],
 
     # return ads

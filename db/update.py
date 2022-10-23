@@ -1,5 +1,3 @@
-from tortoise.expressions import Q
-
 from clients.binance_client import get_pts, get_ads
 from db.models import User, Client, ClientStatus, Ex, Found, Cur, Coin, Pair, Price, Ad, Pt
 
