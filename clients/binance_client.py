@@ -4,9 +4,6 @@ from db.models import User
 
 gap = 0.01
 URL_SRC = 'https://c2c.binance.com/bapi/c2c/v2/friendly/c2c/adv/search'
-prgrs = '/', '-', '\\', '|'
-
-bnks = 'banks', 'ym', 'qiwi'
 
 
 async def breq(path: str, user: User = None, data=None, is_post=True):
@@ -22,13 +19,14 @@ async def breq(path: str, user: User = None, data=None, is_post=True):
         })
     async with aiohttp.ClientSession() as session:
         reqf = session.post if is_post else session.get
+        # noinspection PyArgumentList
         async with reqf(('' if path.startswith('https://') else 'https://c2c.binance.com/') + path, headers=headers, json=data) as response:
             # if response.status == 401:
             #     await hc(user)
             return (await response.json()) or response.status
 
 
-async def ping(user: dict):
+async def ping(user: User):
     res = await breq('bapi/accounts/v1/public/authcenter/auth', user)
     return res['success']
 
@@ -45,16 +43,18 @@ async def get_my_pts(user: User):  # payment methods
     return res['data']
 
 
-async def act_orders(user: dict):  # payment methods
+async def act_orders(user: User):  # payment methods
     res = await breq('bapi/c2c/v2/private/c2c/order-match/order-list', user,
                      {"page": 1, "rows": 10, "orderStatusList": [0, 1, 2, 3, 5]})
     return res['data']
 
 
-async def balance(user: dict, spot0fond1: 0 | 1 = 1):  # payment methods
+async def balance(user: User, spot0fond1: 0 | 1 = 1):  # payment methods
     res = await breq(
-        'https://www.binance.com/bapi/asset/v2/private/asset-service/wallet/balance?needBalanceDetail=true', user,
-        is_post=False)
+        'https://www.binance.com/bapi/asset/v2/private/asset-service/wallet/balance?needBalanceDetail=true',
+        user,
+        is_post=False
+    )
     return res['data'][spot0fond1]['assetBalances'] if res.get('data') else None
 
 

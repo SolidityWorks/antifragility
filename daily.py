@@ -1,7 +1,7 @@
 from tortoise import run_async, Tortoise
 
 from loader import orm_params
-from db.update import upd_fiats
+from db.update import upd_fiats, upd_founds
 
 
 async def update():
@@ -9,7 +9,7 @@ async def update():
     await Tortoise.generate_schemas()
     # actual
     await upd_fiats()
-    # todo: Founds upsert..
+    await upd_founds()
 
 
 if __name__ == "__main__":

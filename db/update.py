@@ -1,9 +1,13 @@
-from clients.binance_client import get_ads, get_my_pts
-from db.models import User, Client, ClientStatus, Ex, Cur, Coin, Pair, Price, Ad, Pt, Fiat
+from clients.binance_client import get_ads, get_my_pts, balance
+from db.models import User, Client, ClientStatus, Ex, Cur, Coin, Pair, Price, Ad, Pt, Fiat, Asset
+
+
+async def get_bc2c_users():
+    return await User.filter(ex_id=1, client__status__gte=ClientStatus.own)
 
 
 async def upd_fiats():
-    for user in await User.filter(ex_id=1, client__status__gte=ClientStatus.own):
+    for user in await get_bc2c_users():
         my_pts = await get_my_pts(user)
         all_pts = await Pt.all().only('name').values_list('name', flat=True)
         if diffs := set([pt['identifier'] for pt in my_pts]) - set(all_pts):
@@ -11,6 +15,13 @@ async def upd_fiats():
         for pt in my_pts:
             dtl = pt['fields'][3 if pt['identifier'] == 'Advcash' else 1]['fieldValue']
             await Fiat.update_or_create(id=pt['id'], user=user, pt_id=pt['identifier'], detail=dtl)
+
+
+async def upd_founds():
+    for user in await get_bc2c_users():
+        for b in await balance(user):
+            d = {"coin_id": b["asset"], "user": user, "free": b["free"], "freeze": b["freeze"], "lock": b["locked"]}
+            await Asset.update_or_create(**d)
 
 
 # # # users:

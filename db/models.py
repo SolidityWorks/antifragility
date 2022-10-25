@@ -119,6 +119,18 @@ class Fiat(Model):
     target: float = fields.FloatField(default=0, null=True)
 
 
+class Asset(Model):
+    # id: int = fields.IntField(pk=True)
+    coin: fields.ForeignKeyRelation[Coin] = fields.ForeignKeyField("models.Coin", related_name="assets")
+    user: fields.ForeignKeyRelation[User] = fields.ForeignKeyField("models.User", "assets")
+    free: float = fields.FloatField()
+    freeze: float = fields.FloatField()
+    lock: float = fields.FloatField()
+    target: float = fields.FloatField(default=0, null=True)
+
+    class Meta:
+        unique_together = (("coin", "user"),)
+
 class Limit(Model):
     fiat: fields.ForeignKeyRelation[Fiat] = fields.ForeignKeyField("models.Fiat", related_name="limits")
     pt: fields.ForeignKeyRelation[Pt] = fields.ForeignKeyField("models.Pt", related_name="limits")
@@ -129,7 +141,7 @@ class Order(Model):
     id: int = fields.BigIntField(pk=True)
     ad: fields.ForeignKeyRelation[Ad] = fields.ForeignKeyField("models.Pair", related_name="orders")
     limit: fields.ForeignKeyRelation[Limit] = fields.ForeignKeyField("models.Limit", related_name="orders")
-    user: fields.ForeignKeyRelation = fields.ForeignKeyField("models.User", "orders")
+    user: fields.ForeignKeyRelation[User] = fields.ForeignKeyField("models.User", "orders")
     status: OrderStatus = fields.IntEnumField(OrderStatus)
     created_at = fields.DatetimeField(auto_now_add=True)
     updated_at = fields.DatetimeField(auto_now=True)
