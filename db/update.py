@@ -1,17 +1,20 @@
-from clients.binance_client import get_pts, get_ads
-from db.models import User, Client, ClientStatus, Ex, Found, Cur, Coin, Pair, Price, Ad, Pt
+from clients.binance_client import get_ads, get_my_pts
+from db.models import User, Client, ClientStatus, Ex, Cur, Coin, Pair, Price, Ad, Pt, Fiat
 
 
-async def upd_found():
+async def upd_fiats():
     for user in await User.filter(ex_id=1, client__status__gte=ClientStatus.own):
-        pts = await get_pts(user)
-        for pt in pts:
+        my_pts = await get_my_pts(user)
+        all_pts = await Pt.all().only('name').values_list('name', flat=True)
+        if diffs := set([pt['identifier'] for pt in my_pts]) - set(all_pts):
+            await Pt.bulk_create([Pt(name=diff) for diff in diffs])
+        for pt in my_pts:
             dtl = pt['fields'][3 if pt['identifier'] == 'Advcash' else 1]['fieldValue']
-            await Found.update_or_create(id=pt['id'], user=user, pt_id=pt['identifier'], detail=dtl)
+            await Fiat.update_or_create(id=pt['id'], user=user, pt_id=pt['identifier'], detail=dtl)
 
 
 # # # users:
-async def user_upd_bc(uid: int, gmail: str, nick: str, cook: str, tok: str, cur: str = None) -> {}:  # bc: binance credentials
+async def user_upd_bc(uid: int, gmail: str, nick: str, cook: str, tok: str) -> {}:  # bc: binance credentials
     client, cr = await Client.get_or_create(gmail=gmail)
     user, cr = await User.get_or_create(uid=uid, client=client, ex=await Ex.get(name="bc2c"))
     # noinspection PyAsyncCall
@@ -20,12 +23,12 @@ async def user_upd_bc(uid: int, gmail: str, nick: str, cook: str, tok: str, cur:
     return user
 
 
-async def seed_pts():
+async def seed_pts(start_page: int = 1, end_page: int = 5):
     i = 0
     for isSell in [0, 1]:
         for cur in await Cur().all():
             for coin in await Coin().all():
-                for page in range(1, 3):
+                for page in range(start_page, end_page+1):
                     res = await get_ads(coin.id, cur.id, isSell, None, 20, page)  # if isSell else [pt.name for pt in pts])
                     if res.get('data'):
                         if page == 1:

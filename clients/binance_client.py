@@ -40,7 +40,7 @@ async def ping(user: dict):
 #         users_db.update({'ran': False}, user['key'])
 
 
-async def get_pts(user: User):  # payment methods
+async def get_my_pts(user: User):  # payment methods
     res = await breq('bapi/c2c/v2/private/c2c/pay-method/user-paymethods', user, {})
     return res['data']
 

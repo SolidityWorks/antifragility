@@ -58,6 +58,10 @@ class Pair(Model):
     class Meta:
         unique_together = (("coin", "cur", "sell", "ex"),)
 
+    def __str__(self):
+        # noinspection PyUnresolvedReferences
+        return f"{self.coin_id}/{self.cur_id} {'SELL' if self.sell else 'BUY'}"
+
 
 class Price(Model):
     pair: fields.ForeignKeyRelation[Pair] = fields.ForeignKeyField("models.Pair", related_name="prices", pk=True)
@@ -69,7 +73,7 @@ class User(Model):
     uid: str = fields.CharField(63, unique=True)
     nickName: str = fields.CharField(63, unique=True, null=True)
     ex: fields.ForeignKeyRelation[Ex] = fields.ForeignKeyField("models.Ex", related_name="users")
-    auth: {} = fields.JSONField(null=True)  # todo: think about it - where move this attr in
+    auth: {} = fields.JSONField(null=True)
     client: fields.ForeignKeyNullableRelation["Client"] = fields.ForeignKeyField("models.Client", related_name="users", null=True)
     is_active: bool = fields.BooleanField(default=True, null=True)
     updated_at = fields.DatetimeField(auto_now=True)
@@ -102,21 +106,21 @@ class Pt(Model):
     rank = fields.SmallIntField(default=0)
     curs: fields.ManyToManyRelation[Cur] = fields.ManyToManyField("models.Cur", related_name="pts")
     ads: fields.ManyToManyRelation[Ad]
-    founds: fields.ManyToManyRelation["Found"]
+    fiats: fields.ManyToManyRelation["Fiat"]
 
 
-class Found(Model):
+class Fiat(Model):
     id: int = fields.IntField(pk=True)
-    pt: fields.ForeignKeyRelation[Pt] = fields.ForeignKeyField("models.Pt", related_name="founds")
+    pt: fields.ForeignKeyRelation[Pt] = fields.ForeignKeyField("models.Pt", related_name="fiats")
     detail: str = fields.CharField(127)
     pts_able: fields.ManyToManyRelation[Pt] = fields.ManyToManyField("models.Pt", "limit", related_name="founds_able")
-    user: fields.ForeignKeyRelation[User] = fields.ForeignKeyField("models.User", "founds")
+    user: fields.ForeignKeyRelation[User] = fields.ForeignKeyField("models.User", "fiats")
     amount: float = fields.FloatField(default=0, null=True)
     target: float = fields.FloatField(default=0, null=True)
 
 
 class Limit(Model):
-    found: fields.ForeignKeyRelation[Found] = fields.ForeignKeyField("models.Found", related_name="limits")
+    fiat: fields.ForeignKeyRelation[Fiat] = fields.ForeignKeyField("models.Fiat", related_name="limits")
     pt: fields.ForeignKeyRelation[Pt] = fields.ForeignKeyField("models.Pt", related_name="limits")
     limit: int = fields.IntField()
 
