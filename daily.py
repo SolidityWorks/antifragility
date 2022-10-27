@@ -1,11 +1,11 @@
-from tortoise import run_async, Tortoise
+import asyncio
 
-from loader import orm_params
+from tortoise import Tortoise
+
 from db.update import upd_fiats, upd_founds
 
 
 async def update():
-    await Tortoise.init(**orm_params)
     await Tortoise.generate_schemas()
     # actual
     await upd_fiats()
@@ -13,4 +13,5 @@ async def update():
 
 
 if __name__ == "__main__":
-    run_async(update())
+    from loader import cns
+    asyncio.run(update())

@@ -45,15 +45,19 @@ class Ex(Model):
 
 class Pair(Model):
     id = fields.SmallIntField(pk=True)
-    ex: fields.ForeignKeyRelation[Ex] = fields.ForeignKeyField("models.Ex", related_name="pairs")
     coin: fields.ForeignKeyRelation[Coin] = fields.ForeignKeyField("models.Coin", related_name="pairs")
     cur: fields.ForeignKeyRelation[Cur] = fields.ForeignKeyField("models.Cur", related_name="pairs")
     sell: bool = fields.BooleanField()
+    price: float = fields.FloatField()
+    pts: fields.ManyToManyRelation["Pt"] = fields.ManyToManyField("models.Pt")
+    maxFiat: float = fields.FloatField()
+    minFiat: float = fields.FloatField()
     fee: float = fields.FloatField()
     total: int = fields.IntField()
-    updated_at = fields.DatetimeField(auto_now=True)
+    ex: fields.ForeignKeyRelation[Ex] = fields.ForeignKeyField("models.Ex", related_name="pairs")
     ad: fields.OneToOneRelation["Ad"]
     prices: fields.ReverseRelation["Price"]
+    updated_at = fields.DatetimeField(auto_now=True)
 
     class Meta:
         unique_together = (("coin", "cur", "sell", "ex"),)
@@ -91,21 +95,16 @@ class Client(Model):
 
 class Ad(Model):
     id: int = fields.BigIntField(pk=True)
-    pair: fields.OneToOneRelation[Pair] = fields.OneToOneField("models.Pair", related_name="ads")
-    maxFiat: float = fields.FloatField()
-    minFiat: float = fields.FloatField()
-    price: float = fields.FloatField()
-    pts: fields.ManyToManyRelation["Pt"] = fields.ManyToManyField("models.Pt", "ad_pt", related_name="ads")
+    pair: fields.OneToOneRelation[Pair] = fields.OneToOneField("models.Pair", related_name="ad")
     user: fields.ForeignKeyRelation = fields.ForeignKeyField("models.User", "ads")
     created_at = fields.DatetimeField(auto_now_add=True)
-    updated_at = fields.DatetimeField(auto_now=True)
 
 
 class Pt(Model):
     name: str = fields.CharField(31, pk=True)
     rank = fields.SmallIntField(default=0)
     curs: fields.ManyToManyRelation[Cur] = fields.ManyToManyField("models.Cur", related_name="pts")
-    ads: fields.ManyToManyRelation[Ad]
+    pairs: fields.ManyToManyRelation[Pair]
     fiats: fields.ManyToManyRelation["Fiat"]
 
 
@@ -120,7 +119,7 @@ class Fiat(Model):
 
 
 class Asset(Model):
-    # id: int = fields.IntField(pk=True)
+    id: int = fields.CharField(15, pk=True)
     coin: fields.ForeignKeyRelation[Coin] = fields.ForeignKeyField("models.Coin", related_name="assets")
     user: fields.ForeignKeyRelation[User] = fields.ForeignKeyField("models.User", "assets")
     free: float = fields.FloatField()
@@ -128,8 +127,9 @@ class Asset(Model):
     lock: float = fields.FloatField()
     target: float = fields.FloatField(default=0, null=True)
 
-    class Meta:
-        unique_together = (("coin", "user"),)
+    # class Meta:
+    #     unique_together = (("coin", "user"),)
+
 
 class Limit(Model):
     fiat: fields.ForeignKeyRelation[Fiat] = fields.ForeignKeyField("models.Fiat", related_name="limits")

@@ -1,7 +1,7 @@
-from tortoise import run_async, Tortoise
+from asyncio import run
+from tortoise import Tortoise
 
 from db.update import seed_pts
-from loader import orm_params
 from db.models import Cur, Coin, Ex, ExType, Pt
 
 
@@ -17,7 +17,6 @@ async def pt_ranking():
 
 
 async def init():
-    await Tortoise.init(**orm_params)
     await Tortoise.generate_schemas()
 
     await Coin.bulk_create(Coin(id=c) for c in [
@@ -46,9 +45,10 @@ async def init():
     ])
     await Ex.create(name="bc2c", type=ExType.p2p)
     # actual payment types seeding
-    await seed_pts()  # lo-o-ong time
+    await seed_pts(1, 1)  # lo-o-ong time
     await pt_ranking()
 
 
 if __name__ == "__main__":
-    run_async(init())
+    from loader import cns
+    run(init())

@@ -1,18 +1,36 @@
-# import logging
+import logging
+import asyncio
+
 from aiohttp import web
 from aiohttp.web_request import Request
-from tortoise.contrib.aiohttp import register_tortoise
+from aiohttp_sse import sse_response
+from tortoise import ModelMeta
+from tortoise.connection import connections
+from tortoise.backends.asyncpg.client import TransactionWrapper
+from tortoise.signals import Signals
 
 from db.update import user_upd_bc
-from loader import orm_params
-from db.models import User
-
-# logging.basicConfig(level=logging.DEBUG)
+from db.models import User, Price
 
 
-async def list_all(request):
-    users = await User.all()
-    return web.json_response({"users": [str(user) for user in users]})
+logging.basicConfig(level=logging.DEBUG)
+
+
+async def list_all(request: Request):
+    data = []
+
+    async def watchdog(meta: ModelMeta, price: Price, cr: bool, tw: TransactionWrapper, e):
+        data.append(f"{price.pair}: {price.price}")
+
+    Price.register_listener(Signals.post_save, watchdog)
+
+    async with sse_response(request) as resp:
+        while resp.status == 200:
+            if data:
+                d = data.pop()
+                await resp.send(d)
+            else:
+                await asyncio.sleep(1)
 
 
 async def add_user(request: Request):
@@ -22,7 +40,6 @@ async def add_user(request: Request):
 
 
 app = web.Application()
-register_tortoise(app, **orm_params)
 
 app.add_routes([
     web.get("/", list_all),
@@ -30,4 +47,6 @@ app.add_routes([
 ])
 
 if __name__ == "__main__":
+    from loader import cns
     web.run_app(app, port=8000)
+    pass

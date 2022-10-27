@@ -20,7 +20,12 @@ async def upd_fiats():
 async def upd_founds():
     for user in await get_bc2c_users():
         for b in await balance(user):
-            d = {"coin_id": b["asset"], "user": user, "free": b["free"], "freeze": b["freeze"], "lock": b["locked"]}
+            d = {"id": f'{b["asset"]}_{user.id}',
+                 "coin_id": b["asset"],
+                 "user": user,
+                 "free": b["free"],
+                 "freeze": b["freeze"],
+                 "lock": b["locked"]}
             await Asset.update_or_create(**d)
 
 
@@ -42,15 +47,12 @@ async def seed_pts(start_page: int = 1, end_page: int = 5):
                 for page in range(start_page, end_page+1):
                     res = await get_ads(coin.id, cur.id, isSell, None, 20, page)  # if isSell else [pt.name for pt in pts])
                     if res.get('data'):
-                        if page == 1:
-                            # pair upsert
-                            await ad_add(res)
-
                         for ad in res['data']:
                             pts = [(await Pt.get_or_create(name=a['identifier']))[0] for a in ad['adv']['tradeMethods']]
                             await cur.pts.add(*pts)
                             i += 1
-
+                        if page == 1:
+                            await ad_add(res)  # pair upsert
                     else:
                         break
     print('ads processed:', i)
@@ -59,37 +61,38 @@ async def seed_pts(start_page: int = 1, end_page: int = 5):
 async def ad_add(res):
     adv = res['data'][0]['adv']
     unq = {'coin_id': adv['asset'], 'cur_id': adv['fiatUnit'], 'sell': adv['tradeType'] != 'SELL', 'ex_id': 1}
-    add = {'fee': adv['commissionRate'], 'last_price': float(adv['price']), 'total': res['total']}
-    if pair := await Pair.get_or_none(**unq):
-        # noinspection PyAsyncCall
-        pair.update_from_dict(add)
-        await pair.save()
-    else:
-        pair = await Pair.create(**unq, **add)
-    # price upsert
-    await Price.get_or_create(price=adv['price'], pair=pair)
-    # user for ad
-    user, cr = await User.update_or_create(
-        uid=res['data'][0]['advertiser']['userNo'],
-        nickName=res['data'][0]['advertiser']['nickName'],
-        ex_id=1
-    )
+    add = {'price': float(adv['price']), 'maxFiat': float(adv['dynamicMaxSingleTransAmount']),
+           'minFiat': adv['minSingleTransAmount'], 'total': res['total'], 'fee': adv['commissionRate']}
     # ad
     idd = int(adv['advNo']) - 10 ** 19
-    props = {
-        'id': idd,
-        'pair': pair,
-        'user': user,
-        'price': adv['price'],
-        'minFiat': float(adv['minSingleTransAmount']),
-        'maxFiat': float(adv['dynamicMaxSingleTransAmount']),
-    }
-    if ad := await Ad.get_or_none(id=idd):
-        await ad.update_from_dict(props).save()
+
+    if pair := await Pair.get_or_none(**unq).prefetch_related('ad'):
+        # todo remove "not pair.ad" cond
+        if not pair.ad or pair.ad.id != idd or pair.price != add['price'] or pair.maxFiat != add['maxFiat']:  # todo: separate diffs
+            await pair.update_from_dict(add).save()
     else:
+        pair = await Pair.create(**unq, **add)
+
+    if not await Ad.exists(id=idd):
+        # user for ad
+        usr = res['data'][0]['advertiser']
+        user, cr = await User.update_or_create(
+            uid=usr['userNo'],
+            nickName=usr['nickName'],
+            ex_id=1
+        )
+        ad_props = {
+            'id': idd,
+            'pair': pair,
+            'user': user,
+        }
         if ad := await Ad.get_or_none(pair=pair):
             await ad.delete()
-        ad = await Ad.create(**props)
-    # ad_pt
-    pts = [(await Pt.get_or_create(name=a['identifier']))[0] for a in adv['tradeMethods']]
-    await ad.pts.add(*pts)
+        await Ad.create(**ad_props)
+        # last ad pts
+        await pair.pts.clear()
+        pts = [await Pt[a['identifier']] for a in adv['tradeMethods']]
+        await pair.pts.add(*pts)
+
+    # price upsert  # todo refactor after separate
+    await Price.get_or_create(price=add['price'], pair=pair)
