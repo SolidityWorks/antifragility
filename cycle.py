@@ -1,8 +1,8 @@
 from asyncio import run
 
 from clients.binance_client import get_ads
-from db.update import ad_add
 from db.models import User, ClientStatus, Pair
+from db.update import ad_proc
 
 
 async def cycle():
@@ -18,7 +18,7 @@ async def tick(pairs: [Pair]):
     global cnt
     for pair in pairs:
         if (res := await get_ads(pair.coin_id, pair.cur_id, pair.sell, None, 2)).get('data'):  # if isSell else [pt.name for pt in pts])
-            await ad_add(res)
+            await ad_proc(res)
             # just process indicate:
             print(prgrs[cnt], end='\r')
             cnt = (cnt+1) % 4

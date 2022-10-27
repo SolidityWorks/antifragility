@@ -1,5 +1,5 @@
 from clients.binance_client import get_ads, get_my_pts, balance
-from db.models import User, Client, ClientStatus, Ex, Cur, Coin, Pair, Price, Ad, Pt, Fiat, Asset
+from db.models import User, Client, ClientStatus, Ex, Cur, Coin, Pair, Ad, Pt, Fiat, Asset
 
 
 async def get_bc2c_users():
@@ -52,50 +52,51 @@ async def seed_pts(start_page: int = 1, end_page: int = 5):
                             await cur.pts.add(*pts)
                             i += 1
                         if page == 1:
-                            await ad_add(res)  # pair upsert
+                            await ad_proc(res)  # pair upsert
                     else:
                         break
     print('ads processed:', i)
 
 
-async def ad_add(res):
+async def ad_proc(res):
     adv = res['data'][0]['adv']
-    unq = {'coin_id': adv['asset'], 'cur_id': adv['fiatUnit'], 'sell': adv['tradeType'] != 'SELL', 'ex_id': 1}
-    add = {'price': float(adv['price']), 'maxFiat': float(adv['dynamicMaxSingleTransAmount']),
-           'minFiat': adv['minSingleTransAmount'], 'total': res['total'], 'fee': adv['commissionRate']}
-    # ad
-    idd = int(adv['advNo']) - 10 ** 19
+    pair_unq = {'coin_id': adv['asset'], 'cur_id': adv['fiatUnit'], 'sell': adv['tradeType'] != 'SELL', 'ex_id': 1}
+    pair_upd = {'total': int(res['total']), 'fee': float(adv['commissionRate'])}
 
-    if pair := await Pair.get_or_none(**unq).prefetch_related('ad'):
-        # todo remove "not pair.ad" cond
-        if not pair.ad or pair.ad.id != idd or pair.price != add['price'] or pair.maxFiat != add['maxFiat']:  # todo: separate diffs
-            await pair.update_from_dict(add).save()
+    # Pair
+    if pair := await Pair.get_or_none(**pair_unq):
+        if pair.total != pair_upd['total']:  # or pair.fee != pair_upd['maxFiat']:
+            await pair.update_from_dict(pair_upd).save()
     else:
-        pair = await Pair.create(**unq, **add)
+        pair: Pair = await Pair.create(**pair_unq, **pair_upd)
 
-    if not await Ad.exists(id=idd):
+    # Pt
+    pts_new: {str} = set(pt['identifier'] for pt in adv['tradeMethods'])
+    pts: [Pt] = []
+
+    # Ad
+    idd = int(adv['advNo']) - 10 ** 19
+    ad_upd = {'price': float(adv['price']), 'maxFiat': float(adv['dynamicMaxSingleTransAmount']), 'minFiat': adv['minSingleTransAmount']}
+    if ad := await Ad.get_or_none(id=idd).prefetch_related('pts'):
+        pts_old: {str} = set(pt.name for pt in ad.pts)
+        if ad.price != ad_upd['price'] or ad.maxFiat != ad_upd['maxFiat']:  # or ad.minFiat != ad_upd['minFiat']  # todo: separate diffs
+            await ad.update_from_dict(ad_upd).save()
+        if pts_old != pts_new:
+            await ad.pts.clear()
+            pts: [Pt] = [await Pt[pt['identifier']] for pt in adv['tradeMethods']]
+            await ad.pts.add(*pts)
+
+    else:
         # user for ad
         usr = res['data'][0]['advertiser']
-        user, cr = await User.update_or_create(
-            uid=usr['userNo'],
-            nickName=usr['nickName'],
-            ex_id=1
-        )
-        ad_props = {
-            'id': idd,
-            'pair': pair,
-            'user': user,
-        }
-        if ad := await Ad.get_or_none(pair=pair):
-            await ad.delete()
-        await Ad.create(**ad_props)
-        # last ad pts
-        await pair.pts.clear()
-        pts = [await Pt[a['identifier']] for a in adv['tradeMethods']]
-        await pair.pts.add(*pts)
+        usr_add = {'nickName': usr['nickName'], 'ex_id': 1}
+        if not (user := await User.get_or_none(uid=usr['userNo'])):
+            user: User = await User.create(uid=usr['userNo'], nickName=usr['nickName'], ex_id=1)
+        ad: Ad = await Ad.create(id=idd, pair=pair, user=user, **ad_upd)
 
-    # price upsert  # todo refactor after separate
-    p, cr = await Price.get_or_create(price=add['price'], pair=pair)
-    if cr:
-        pts = locals().get('pts', await pair.pts)
-        print(pair, p.price, f"({pair.minFiat}-{pair.maxFiat})", [p.name for p in pts])
+        # pts
+        pts: [Pt] = pts or [await Pt[pt['identifier']] for pt in adv['tradeMethods']]
+        await ad.pts.add(*pts)
+
+    if pts:
+        print(pair, ad.price, f"({ad.minFiat}-{ad.maxFiat})", list(pts_new))

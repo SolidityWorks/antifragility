@@ -5,13 +5,11 @@ from aiohttp import web
 from aiohttp.web_request import Request
 from aiohttp_sse import sse_response
 from tortoise import ModelMeta
-from tortoise.connection import connections
 from tortoise.backends.asyncpg.client import TransactionWrapper
 from tortoise.signals import Signals
 
 from db.update import user_upd_bc
-from db.models import User, Price
-
+from db.models import User, Ad
 
 logging.basicConfig(level=logging.DEBUG)
 
@@ -19,10 +17,11 @@ logging.basicConfig(level=logging.DEBUG)
 async def list_all(request: Request):
     data = []
 
-    async def watchdog(meta: ModelMeta, price: Price, cr: bool, tw: TransactionWrapper, e):
-        data.append(f"{price.pair}: {price.price}")
+    # noinspection PyUnusedLocal
+    async def watchdog(meta: ModelMeta, ad: Ad, cr: bool, tw: TransactionWrapper, e):
+        data.append(f"{ad.pair}: {ad.price}")
 
-    Price.register_listener(Signals.post_save, watchdog)
+    Ad.register_listener(Signals.post_save, watchdog)
 
     async with sse_response(request) as resp:
         while resp.status == 200:
@@ -47,6 +46,7 @@ app.add_routes([
 ])
 
 if __name__ == "__main__":
+    # noinspection PyUnresolvedReferences
     from loader import cns
     web.run_app(app, port=8000)
     pass

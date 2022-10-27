@@ -48,15 +48,10 @@ class Pair(Model):
     coin: fields.ForeignKeyRelation[Coin] = fields.ForeignKeyField("models.Coin", related_name="pairs")
     cur: fields.ForeignKeyRelation[Cur] = fields.ForeignKeyField("models.Cur", related_name="pairs")
     sell: bool = fields.BooleanField()
-    price: float = fields.FloatField()
-    pts: fields.ManyToManyRelation["Pt"] = fields.ManyToManyField("models.Pt")
-    maxFiat: float = fields.FloatField()
-    minFiat: float = fields.FloatField()
     fee: float = fields.FloatField()
     total: int = fields.IntField()
     ex: fields.ForeignKeyRelation[Ex] = fields.ForeignKeyField("models.Ex", related_name="pairs")
-    ad: fields.OneToOneRelation["Ad"]
-    prices: fields.ReverseRelation["Price"]
+    ads: fields.ReverseRelation["Ad"]
     updated_at = fields.DatetimeField(auto_now=True)
 
     class Meta:
@@ -65,12 +60,6 @@ class Pair(Model):
     def __str__(self):
         # noinspection PyUnresolvedReferences
         return f"{self.coin_id}/{self.cur_id} {'SELL' if self.sell else 'BUY'}"
-
-
-class Price(Model):
-    pair: fields.ForeignKeyRelation[Pair] = fields.ForeignKeyField("models.Pair", related_name="prices", pk=True)
-    price: float = fields.FloatField()
-    created_at = fields.DatetimeField(auto_now_add=True)
 
 
 class User(Model):
@@ -95,9 +84,15 @@ class Client(Model):
 
 class Ad(Model):
     id: int = fields.BigIntField(pk=True)
-    pair: fields.OneToOneRelation[Pair] = fields.OneToOneField("models.Pair", related_name="ad")
+    pair: fields.ForeignKeyRelation[Pair] = fields.ForeignKeyField("models.Pair", related_name="ad")
+    price: float = fields.FloatField()
+    pts: fields.ManyToManyRelation["Pt"] = fields.ManyToManyField("models.Pt")
+    maxFiat: float = fields.FloatField()
+    minFiat: float = fields.FloatField()
     user: fields.ForeignKeyRelation = fields.ForeignKeyField("models.User", "ads")
     created_at = fields.DatetimeField(auto_now_add=True)
+    updated_at = fields.DatetimeField(auto_now=True)
+    orders: fields.ReverseRelation["Order"]
 
 
 class Pt(Model):
