@@ -95,4 +95,7 @@ async def ad_add(res):
         await pair.pts.add(*pts)
 
     # price upsert  # todo refactor after separate
-    await Price.get_or_create(price=add['price'], pair=pair)
+    p, cr = await Price.get_or_create(price=add['price'], pair=pair)
+    if cr:
+        pts = locals().get('pts', await pair.pts)
+        print(pair, p.price, f"({pair.minFiat}-{pair.maxFiat})", [p.name for p in pts])
