@@ -2,8 +2,8 @@ from clients.binance_client import get_ads, get_my_pts, balance
 from db.models import User, Client, ClientStatus, Ex, Cur, Coin, Pair, Ad, Pt, Fiat, Asset
 
 
-async def get_bc2c_users():
-    return await User.filter(ex_id=1, client__status__gte=ClientStatus.own)
+async def get_bc2c_users() -> [User]:
+    return await User.filter(ex_id=1, client__status__gte=ClientStatus.own)  # .all()  # the same result
 
 
 async def upd_fiats():
@@ -42,7 +42,7 @@ async def user_upd_bc(uid: int, gmail: str, nick: str, cook: str, tok: str) -> {
 async def seed_pts(start_page: int = 1, end_page: int = 5):
     i = 0
     for isSell in [0, 1]:
-        for cur in await Cur().all():
+        for cur in await Cur().all().prefetch_related('pts'):
             for coin in await Coin().all():
                 for page in range(start_page, end_page+1):
                     res = await get_ads(coin.id, cur.id, isSell, None, 20, page)  # if isSell else [pt.name for pt in pts])
@@ -58,7 +58,7 @@ async def seed_pts(start_page: int = 1, end_page: int = 5):
     print('ads processed:', i)
 
 
-async def ad_proc(res):
+async def ad_proc(res: {}, pts_cur: {str} = None):
     adv = res['data'][0]['adv']
     pair_unq = {'coin_id': adv['asset'], 'cur_id': adv['fiatUnit'], 'sell': adv['tradeType'] != 'SELL', 'ex_id': 1}
     pair_upd = {'total': int(res['total']), 'fee': float(adv['commissionRate'])}
@@ -72,6 +72,8 @@ async def ad_proc(res):
 
     # Pt
     pts_new: {str} = set(pt['identifier'] for pt in adv['tradeMethods'])
+    if pts_cur:  # pts filter for cycle update
+        pts_new = pts_new  # & pts_cur  # todo: temporary disable pts filtering
     pts: [Pt] = []
 
     # Ad
@@ -83,20 +85,19 @@ async def ad_proc(res):
             await ad.update_from_dict(ad_upd).save()
         if pts_old != pts_new:
             await ad.pts.clear()
-            pts: [Pt] = [await Pt[pt['identifier']] for pt in adv['tradeMethods']]
+            pts: [Pt] = [await Pt[pt] for pt in pts_new]
             await ad.pts.add(*pts)
 
     else:
         # user for ad
         usr = res['data'][0]['advertiser']
-        usr_add = {'nickName': usr['nickName'], 'ex_id': 1}
         if not (user := await User.get_or_none(uid=usr['userNo'])):
             user: User = await User.create(uid=usr['userNo'], nickName=usr['nickName'], ex_id=1)
         ad: Ad = await Ad.create(id=idd, pair=pair, user=user, **ad_upd)
 
         # pts
-        pts: [Pt] = pts or [await Pt[pt['identifier']] for pt in adv['tradeMethods']]
+        pts: [Pt] = pts or [await Pt[pt] for pt in pts_new]
         await ad.pts.add(*pts)
 
     if pts:
-        print(pair, ad.price, f"({ad.minFiat}-{ad.maxFiat})", list(pts_new))
+        print(pair, f"[{pair.total}] {ad.price} * ({ad.minFiat}-{ad.maxFiat}) :", *pts_new)

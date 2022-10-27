@@ -63,6 +63,7 @@ class Pair(Model):
 
 
 class User(Model):
+    id: int = fields.IntField(pk=True)
     uid: str = fields.CharField(63, unique=True)
     nickName: str = fields.CharField(63, unique=True, null=True)
     ex: fields.ForeignKeyRelation[Ex] = fields.ForeignKeyField("models.Ex", related_name="users")
@@ -91,7 +92,7 @@ class Ad(Model):
     minFiat: float = fields.FloatField()
     user: fields.ForeignKeyRelation = fields.ForeignKeyField("models.User", "ads")
     created_at = fields.DatetimeField(auto_now_add=True)
-    updated_at = fields.DatetimeField(auto_now=True)
+    updated_at = fields.DatetimeField(auto_now=True, index=True)
     orders: fields.ReverseRelation["Order"]
 
 
