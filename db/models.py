@@ -27,9 +27,15 @@ class ExType(Enum):
     p2p = "p2p"
 
 
+class Region(Enum):
+    russia = "Russia"
+    turkey = "Turkey"
+
+
 class Cur(Model):
     id: str = fields.CharField(3, pk=True)
     pts: fields.ManyToManyRelation["Pt"]
+    fiats: fields.ManyToManyRelation["Fiat"]
 
 
 class Coin(Model):
@@ -96,22 +102,42 @@ class Ad(Model):
     orders: fields.ReverseRelation["Order"]
 
 
+class Ptg(Model):
+    name: str = fields.CharField(31, pk=True)
+
+
 class Pt(Model):
     name: str = fields.CharField(31, pk=True)
     rank = fields.SmallIntField(default=0)
     curs: fields.ManyToManyRelation[Cur] = fields.ManyToManyField("models.Cur", related_name="pts")
-    pairs: fields.ManyToManyRelation[Pair]
-    fiats: fields.ManyToManyRelation["Fiat"]
+    ptg: fields.ForeignKeyNullableRelation[Ptg] = fields.ForeignKeyField("models.Ptg", null=True)
+    pairs: fields.ReverseRelation[Pair]
+    fiats: fields.ReverseRelation["Fiat"]
+    orders: fields.ReverseRelation["Order"]
 
 
 class Fiat(Model):
     id: int = fields.IntField(pk=True)
     pt: fields.ForeignKeyRelation[Pt] = fields.ForeignKeyField("models.Pt", related_name="fiats")
+    curs: fields.ManyToManyRelation[Cur] = fields.ManyToManyField("models.Cur", through="fcr", related_name="fiats")
     detail: str = fields.CharField(127)
-    pts_able: fields.ManyToManyRelation[Pt] = fields.ManyToManyField("models.Pt", "limit", related_name="founds_able")
     user: fields.ForeignKeyRelation[User] = fields.ForeignKeyField("models.User", "fiats")
     amount: float = fields.FloatField(default=0, null=True)
     target: float = fields.FloatField(default=0, null=True)
+    orders: fields.ReverseRelation["Order"]
+
+
+class Fcr(Model):
+    fiat: fields.ForeignKeyRelation[Fiat] = fields.ForeignKeyField("models.Fiat")
+    cur: fields.ForeignKeyRelation[Cur] = fields.ForeignKeyField("models.Cur")
+    region: fields.CharEnumField(Region) = fields.CharEnumField(Region, null=True)
+
+
+class Limit(Model):
+    fiat: fields.ForeignKeyRelation[Fiat] = fields.ForeignKeyField("models.Fiat", related_name="limits")  # from
+    ptg: fields.ForeignKeyRelation[Pt] = fields.ForeignKeyField("models.Ptg", related_name="limits")  # to
+    limit: int = fields.IntField(default=-1)
+    fee: float = fields.IntField(default=0)
 
 
 class Asset(Model):
@@ -127,16 +153,12 @@ class Asset(Model):
     #     unique_together = (("coin", "user"),)
 
 
-class Limit(Model):
-    fiat: fields.ForeignKeyRelation[Fiat] = fields.ForeignKeyField("models.Fiat", related_name="limits")
-    pt: fields.ForeignKeyRelation[Pt] = fields.ForeignKeyField("models.Pt", related_name="limits")
-    limit: int = fields.IntField()
-
-
 class Order(Model):
     id: int = fields.BigIntField(pk=True)
-    ad: fields.ForeignKeyRelation[Ad] = fields.ForeignKeyField("models.Pair", related_name="orders")
-    limit: fields.ForeignKeyRelation[Limit] = fields.ForeignKeyField("models.Limit", related_name="orders")
+    ad: fields.ForeignKeyRelation[Ad] = fields.ForeignKeyField("models.Ad", related_name="orders")
+    amount: float = fields.FloatField()
+    fiat: fields.ForeignKeyRelation[Fiat] = fields.ForeignKeyField("models.Fiat", related_name="orders")
+    pt: fields.ForeignKeyNullableRelation[Pt] = fields.ForeignKeyField("models.Pt", related_name="orders", null=True)
     user: fields.ForeignKeyRelation[User] = fields.ForeignKeyField("models.User", "orders")
     status: OrderStatus = fields.IntEnumField(OrderStatus)
     created_at = fields.DatetimeField(auto_now_add=True)

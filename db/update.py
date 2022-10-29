@@ -65,7 +65,7 @@ async def ad_proc(res: {}, pts_cur: {str} = None):
 
     # Pair
     if pair := await Pair.get_or_none(**pair_unq):
-        if pair.total != pair_upd['total']:  # or pair.fee != pair_upd['maxFiat']:
+        if pair.total != pair_upd['total'] or pair.fee != pair_upd['fee']:
             await pair.update_from_dict(pair_upd).save()
     else:
         pair: Pair = await Pair.create(**pair_unq, **pair_upd)
@@ -99,5 +99,5 @@ async def ad_proc(res: {}, pts_cur: {str} = None):
         pts: [Pt] = pts or [await Pt[pt] for pt in pts_new]
         await ad.pts.add(*pts)
 
-    if pts:
-        print(pair, f"[{pair.total}] {ad.price} * ({ad.minFiat}-{ad.maxFiat}) :", *pts_new)
+    # if pts:
+    print(f"{pair.id}: {pair} [{pair.total}] {ad.price} * ({ad.minFiat}-{ad.maxFiat}) :", *pts_new)
