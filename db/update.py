@@ -1,5 +1,5 @@
-from clients.binance_client import get_ads, get_my_pts, balance
-from db.models import User, Client, ClientStatus, Ex, Cur, Coin, Pair, Ad, Pt, Fiat, Asset
+from clients.binance_client import get_ads, get_my_pts, balance, arch_orders
+from db.models import User, Client, ClientStatus, Ex, Cur, Coin, Pair, Ad, Pt, Fiat, Asset, Order, OrderStatus
 
 
 async def get_bc2c_users() -> [User]:
@@ -101,3 +101,53 @@ async def ad_proc(res: {}, pts_cur: {str} = None):
 
     # if pts:
     print(f"{pair.id}: {pair} [{pair.total}] {ad.price} * ({ad.minFiat}-{ad.maxFiat}) :", *pts_new)
+
+
+async def orders_fill():
+    clients: [Client] = await Client.filter(status__gte=3).prefetch_related('users')
+    orders = []
+    for client in clients:
+        for user in client.users:
+            res = await arch_orders(user)
+            print(res)
+
+            orders, total = await arch_orders(user)
+            for od in orders:
+                order = await ordr(od, user)
+                if o := await Order.get_or_none(id=order['id']):
+                    await o.update_from_dict(order).save()
+                else:
+                    await Order.create(**order)
+    print(len(orders or []), end='.')
+
+
+async def ordr(d: {}, user: User):  # class helps to create ad object from input data
+    aid: int = int(d['advNo']) - 10 ** 19
+    ptsd = {p['id']: p['identifier'] for p in d['payMethods']}
+    sell: bool = d['tradeType'] == 'SELL'
+    if not (ad := await Ad.get_or_none(id=aid).prefetch_related('pts')):
+        pair, = await Pair.get(sell=sell, coin_id=d['asset'], cur_id=d['fiat']),
+        ad = await Ad.create(id=aid, price=d['price'], maxFiat=d['totalPrice'], minFiat=d['totalPrice'], pair=pair)
+        await ad.pts.add(*[await Pt[pt] for pt in ptsd.values()])
+
+    pt: str = ptsd.get(d['selectedPayId'])
+
+    if sell:  # I receive to this fiat
+        fiat: Fiat = await Fiat[d['selectedPayId']] if d['selectedPayId'] else None
+    else:  # I pay from this fiat. Search my fiat by pt
+        fiats = await Fiat.filter(pt_id=pt, user_id=user.id).prefetch_related('curs')
+        fiats = [f for f in fiats if d['fiat'] in [c.id for c in f.curs]]
+        if len(fiats) != 1:
+            print('WARNING FIATS STRUCTURE:', fiats)
+        fiat = fiats[0]
+
+    return {
+        'id': int(d['orderNumber']) - 2*10**19,
+        'ad_id': aid,
+        'amount': float(d['amount']),
+        'pt_id': pt,
+        'fiat': fiat,
+        'user': user,
+        # 'arch': d['archived'],
+        'status': d['orderStatus'],
+    }

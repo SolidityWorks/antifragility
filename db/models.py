@@ -13,10 +13,14 @@ class ClientStatus(IntEnum):
 
 
 class OrderStatus(IntEnum):
-    canceled = 0
-    created = 1
-    wait = 2
-    done = 3
+    zero = 0
+    one = 1
+    two = 2
+    three = 3
+    done = 4
+    fifth = 5
+    canceled = 6
+    paid_and_canceled = 7
 
 
 class ExType(Enum):
@@ -164,7 +168,7 @@ class Order(Model):
     id: int = fields.BigIntField(pk=True)
     ad: fields.ForeignKeyRelation[Ad] = fields.ForeignKeyField("models.Ad", related_name="orders")
     amount: float = fields.FloatField()
-    fiat: fields.ForeignKeyRelation[Fiat] = fields.ForeignKeyField("models.Fiat", related_name="orders")
+    fiat: fields.ForeignKeyRelation[Fiat] = fields.ForeignKeyField("models.Fiat", related_name="orders", null=True)
     pt: fields.ForeignKeyNullableRelation[Pt] = fields.ForeignKeyField("models.Pt", related_name="orders", null=True)
     user: fields.ForeignKeyRelation[User] = fields.ForeignKeyField("models.User", "orders")
     status: OrderStatus = fields.IntEnumField(OrderStatus)

@@ -50,8 +50,8 @@ async def pt_ranking():
 
 
 async def fiat_cur():
-    await Fcr.create(fiat_id=25842082, cur_id='TRY')
-    await Fcr.create(fiat_id=25812762, cur_id='USD')
+    await Fcr.create(fiat_id=25842082, cur_id='EUR')
+    await Fcr.create(fiat_id=25812762, cur_id='EUR')
     await Fcr.create(fiat_id=25416699, cur_id='TRY')
     await Fcr.create(fiat_id=25303844, cur_id='USD', region=Region.turkey)
     await Fcr.create(fiat_id=25303844, cur_id='EUR', region=Region.turkey)
@@ -62,7 +62,7 @@ async def fiat_cur():
     await Fcr.create(fiat_id=25303608, cur_id='TRY', region=Region.turkey)
     await Fcr.create(fiat_id=25303608, cur_id='RUB', region=Region.turkey, blocked=True)
     await Fcr.create(fiat_id=25236287, cur_id='USD')
-    await Fcr.create(fiat_id=25236248, cur_id='TRY')
+    await Fcr.create(fiat_id=25236248, cur_id='USD')
     await Fcr.create(fiat_id=25236170, cur_id='USD')
     await Fcr.create(fiat_id=25136929, cur_id='TRY')
     await Fcr.create(fiat_id=24956898, cur_id='RUB')
