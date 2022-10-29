@@ -109,11 +109,17 @@ class Ptg(Model):
 class Pt(Model):
     name: str = fields.CharField(31, pk=True)
     rank = fields.SmallIntField(default=0)
-    curs: fields.ManyToManyRelation[Cur] = fields.ManyToManyField("models.Cur", related_name="pts")
+    curs: fields.ManyToManyRelation[Cur] = fields.ManyToManyField("models.Cur", through="ptc", related_name="pts")
     ptg: fields.ForeignKeyNullableRelation[Ptg] = fields.ForeignKeyField("models.Ptg", null=True)
     pairs: fields.ReverseRelation[Pair]
     fiats: fields.ReverseRelation["Fiat"]
     orders: fields.ReverseRelation["Order"]
+
+
+class Ptc(Model):
+    pt: fields.ForeignKeyNullableRelation[Pt] = fields.ForeignKeyField("models.Pt")
+    cur: fields.ForeignKeyRelation[Cur] = fields.ForeignKeyField("models.Cur")
+    blocked: fields.BooleanField = fields.BooleanField(default=False)
 
 
 class Fiat(Model):
@@ -130,6 +136,7 @@ class Fiat(Model):
 class Fcr(Model):
     fiat: fields.ForeignKeyRelation[Fiat] = fields.ForeignKeyField("models.Fiat")
     cur: fields.ForeignKeyRelation[Cur] = fields.ForeignKeyField("models.Cur")
+    blocked: fields.BooleanField = fields.BooleanField(default=False)
     region: fields.CharEnumField(Region) = fields.CharEnumField(Region, null=True)
 
 
