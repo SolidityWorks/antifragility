@@ -75,10 +75,12 @@ async def seed_pts(start_page: int = 1, end_page: int = 5):
                 for page in range(start_page, end_page+1):
                     res = await get_ads(coin.id, cur.id, isSell, None, 20, page)  # if isSell else [pt.name for pt in pts])
                     if res.get('data'):
+                        pts = set()
                         for ad in res['data']:
-                            pts = [(await Pt.get_or_create(name=a['identifier']))[0] for a in ad['adv']['tradeMethods']]
-                            await cur.pts.add(*pts)
+                            [pts.add(a['identifier']) for a in ad['adv']['tradeMethods']]
                             i += 1
+                        pts = [(await Pt.update_or_create(name=pt))[0] for pt in pts]
+                        await cur.pts.add(*pts)
                         if page == 1:
                             await ad_proc(res)  # pair upsert
                     else:

@@ -11,9 +11,8 @@ async def update():
     await upd_fiats()
     await upd_founds()
 
-    # await seed_pts(2, 2)  # lo-o-ong time
+    # await seed_pts(1, 2)  # lo-o-ong time
     # todo: only first time
-    await ptg()
     await orders_fill()
 
 
