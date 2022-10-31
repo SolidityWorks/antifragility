@@ -1,5 +1,5 @@
 from clients.binance_client import get_ads, get_my_pts, balance, arch_orders
-from db.models import User, Client, ClientStatus, Ex, Cur, Coin, Pair, Ad, Pt, Fiat, Asset, Order, OrderStatus
+from db.models import User, Client, ClientStatus, Ex, Cur, Coin, Pair, Ad, Pt, Fiat, Asset, Order, OrderStatus, Ptc
 
 
 async def get_bc2c_users() -> [User]:
@@ -14,19 +14,47 @@ async def upd_fiats():
             await Pt.bulk_create([Pt(name=diff) for diff in diffs])
         for pt in my_pts:
             dtl = pt['fields'][3 if pt['identifier'] == 'Advcash' else 1]['fieldValue']
-            await Fiat.update_or_create(id=pt['id'], user=user, pt_id=pt['identifier'], detail=dtl)
+            ptc, _ = await Ptc.get_or_create(cur_id=fiat_cur_map[pt['id']], pt_id=pt['identifier'])
+            await Fiat.update_or_create(id=pt['id'], user=user, ptc=ptc, detail=dtl)
+
+
+fiat_cur_map: {} = {
+    25842082: 'EUR',
+    25812762: 'EUR',
+    25416699: 'TRY',
+    25303844: 'TRY',
+    25303608: 'TRY',
+    25236287: 'USD',
+    25236248: 'USD',
+    25236170: 'USD',
+    25136929: 'TRY',
+    24956898: 'RUB',
+    24956617: 'RUB',
+    24955395: 'TRY',
+    24951855: 'RUB',
+    24950350: 'TRY',
+    20023779: 'RUB',
+    17750004: 'RUB',
+    17746529: 'EUR',
+    17746495: 'USD',
+    17746422: 'RUB',
+    16026051: 'RUB',
+}
 
 
 async def upd_founds():
     for user in await get_bc2c_users():
         for b in await balance(user):
-            d = {"id": f'{b["asset"]}_{user.id}',
-                 "coin_id": b["asset"],
+            key = f'{b["asset"]}_{user.id}'
+            d = {"coin_id": b["asset"],
                  "user": user,
                  "free": b["free"],
                  "freeze": b["freeze"],
                  "lock": b["locked"]}
-            await Asset.update_or_create(**d)
+            if a := await Asset.get_or_none(id=key):
+                await a.update_from_dict(d).save()
+            else:
+                await Asset.create(id=key, **d)
 
 
 # # # users:
@@ -105,20 +133,8 @@ async def ad_proc(res: {}, pts_cur: {str} = None):
 
 async def orders_fill():
     clients: [Client] = await Client.filter(status__gte=3).prefetch_related('users')
-    orders = []
     for client in clients:
-        for user in client.users:
-            res = await arch_orders(user)
-            print(res)
-
-            orders, total = await arch_orders(user)
-            for od in orders:
-                order = await ordr(od, user)
-                if o := await Order.get_or_none(id=order['id']):
-                    await o.update_from_dict(order).save()
-                else:
-                    await Order.create(**order)
-    print(len(orders or []), end='.')
+        [await arch_orders(user) for user in client.users]
 
 
 async def ordr(d: {}, user: User):  # class helps to create ad object from input data
@@ -126,7 +142,7 @@ async def ordr(d: {}, user: User):  # class helps to create ad object from input
     ptsd = {p['id']: p['identifier'] for p in d['payMethods']}
     sell: bool = d['tradeType'] == 'SELL'
     if not (ad := await Ad.get_or_none(id=aid).prefetch_related('pts')):
-        pair, = await Pair.get(sell=sell, coin_id=d['asset'], cur_id=d['fiat']),
+        pair = await Pair.get(sell=sell, coin_id=d['asset'], cur_id=d['fiat'])
         ad = await Ad.create(id=aid, price=d['price'], maxFiat=d['totalPrice'], minFiat=d['totalPrice'], pair=pair)
         await ad.pts.add(*[await Pt[pt] for pt in ptsd.values()])
 

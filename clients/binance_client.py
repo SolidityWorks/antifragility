@@ -3,7 +3,7 @@ from time import time
 
 import aiohttp
 
-from db.models import User, Ad, Pair, Pt, Fiat, Order, Client
+from db.models import User, Ad, Pair, Pt, Fiat, Order, Ptc
 
 gap = 0.01
 HOST = 'https://c2c.binance.com/'
@@ -47,7 +47,7 @@ async def ping(user: User):
 
 
 async def get_my_pts(user: User):  # payment methods
-    res = await breq('', user, {})
+    res = await breq(PTS_PTH, user, {})
     return res['data']
 
 
@@ -88,24 +88,36 @@ async def orders_proc(orders: [{}], user: User):
 
 async def ordr(d: {}, user: User):  # class helps to create ad object from input data
     aid: int = int(d['advNo']) - 10 ** 19
-    ptsd = {p['id']: p['identifier'] for p in d['payMethods']}
+    ptsd = {p['id']: old_pts.get(p['identifier'], p['identifier']) for p in d['payMethods']}
     sell: bool = d['tradeType'] == 'SELL'
     if not (ad := await Ad.get_or_none(id=aid).prefetch_related('pts')):
-        pair, = await Pair.get(sell=sell, coin_id=d['asset'], cur_id=d['fiat']),
-        ad = await Ad.create(id=aid, price=d['price'], maxFiat=d['totalPrice'], minFiat=d['totalPrice'], pair=pair)
+        pair = await Pair.get(sell=sell, coin_id=d['asset'], cur_id=d['fiat'])
+        ad = await Ad.create(id=aid, price=d['price'], maxFiat=d['totalPrice'], minFiat=d['totalPrice'], pair=pair, user=user)
         await ad.pts.add(*[await Pt[pt] for pt in ptsd.values()])
 
     pt: str = ptsd.get(d['selectedPayId'])
 
     if sell:  # I receive to this fiat
-        fiat: Fiat = await Fiat[d['selectedPayId']] if d['selectedPayId'] else None
-    else:  # I pay from this fiat. Search my fiat by pt
-        fiats = await Fiat.filter(pt_id=pt, user_id=user.id).prefetch_related('curs')
-        fiats = [f for f in fiats if d['fiat'] in [c.id for c in f.curs]]
-        if len(fiats) != 1:
-            print('WARNING FIATS STRUCTURE:', d['selectedPayId'], pt)
-            fiats = [None]
-        fiat = fiats[0]
+        fiat: Fiat = await Fiat.get_or_none(id=d['selectedPayId']) if d['selectedPayId'] else None
+    else:
+        if not (ptc := await Ptc.get_or_none(pt_id=pt, cur_id=d['fiat'])):  # I pay from this fiat. Search my fiat by pt
+            if not len(ptsd):
+                print(ptsd)
+            else:
+                if not (ptc := await Ptc.filter(pt_id__in=ptsd.values(), cur_id=d['fiat']).first()):
+                    print(ptsd)  # only for debug
+        if not (fiat := await Fiat.filter(ptc=ptc, user=user).first()):
+            pto: Pt = await ptc.pt
+            if par := await pto.parent:
+                children = await par.children
+                in_group_ptcs = [await Ptc.get_or_none(pt=c, cur_id=d['fiat']) for c in children]
+                if None in in_group_ptcs:
+                    in_group_ptcs = list(filter(lambda x: x, in_group_ptcs))
+                    print(par)
+                fiat = await Fiat.filter(ptc_id__in=[pc.id for pc in in_group_ptcs], user=user).first()
+            else:
+                print(pto)
+                fiat = None
 
     return {
         'id': int(d['orderNumber']) - 2*10**19,
@@ -118,6 +130,20 @@ async def ordr(d: {}, user: User):  # class helps to create ad object from input
         'status': d['orderStatus'],
         'created_at': int(d['createTime']/1000)
     }
+
+old_pts = {
+    'Tinkoff': 'TinkoffNew',
+    'RosBank': 'RosBankNew',
+    'Sberbank': 'RosBankNew',
+    'VTBBank': 'RosBankNew',
+    'OtkritieBank': 'RosBankNew',
+    'SovkomBank': 'RosBankNew',
+    'YandexMoney': 'YandexMoneyNew',
+    'PostBank': 'PostBankNew',
+    'PostBankRussia': 'PostBankNew',
+    'RaiffeisenBankRussia': 'RaiffeisenBank',
+    'AlfaBank': 'ABank',
+}
 
 
 async def balance(user: User, spot0fond1: 0 | 1 = 1):  # payment methods

@@ -39,7 +39,6 @@ class Region(Enum):
 class Cur(Model):
     id: str = fields.CharField(3, pk=True)
     pts: fields.ManyToManyRelation["Pt"]
-    fiats: fields.ManyToManyRelation["Fiat"]
 
 
 class Coin(Model):
@@ -97,7 +96,7 @@ class Ad(Model):
     id: int = fields.BigIntField(pk=True)
     pair: fields.ForeignKeyRelation[Pair] = fields.ForeignKeyField("models.Pair", related_name="ad")
     price: float = fields.FloatField()
-    pts: fields.ManyToManyRelation["Pt"] = fields.ManyToManyField("models.Pt")
+    pts: fields.ManyToManyRelation["Pt"] = fields.ManyToManyField("models.Pt")  # only root pts
     maxFiat: float = fields.FloatField()
     minFiat: float = fields.FloatField()
     user: fields.ForeignKeyRelation = fields.ForeignKeyField("models.User", "ads")
@@ -106,18 +105,16 @@ class Ad(Model):
     orders: fields.ReverseRelation["Order"]
 
 
-class Ptg(Model):
-    name: str = fields.CharField(31, pk=True)
-
-
 class Pt(Model):
     name: str = fields.CharField(31, pk=True)
     rank = fields.SmallIntField(default=0)
-    curs: fields.ManyToManyRelation[Cur] = fields.ManyToManyField("models.Cur", through="ptc", related_name="pts")
-    ptg: fields.ForeignKeyNullableRelation[Ptg] = fields.ForeignKeyField("models.Ptg", null=True)
+    parent: fields.ForeignKeyNullableRelation["Pt"] = fields.ForeignKeyField("models.Pt", null=True, related_name="children")
+    curs: fields.ManyToManyRelation[Cur] = fields.ManyToManyField("models.Cur", through="ptc")
+
     pairs: fields.ReverseRelation[Pair]
     fiats: fields.ReverseRelation["Fiat"]
     orders: fields.ReverseRelation["Order"]
+    children: fields.ReverseRelation["Pt"]
 
 
 class Ptc(Model):
@@ -125,30 +122,32 @@ class Ptc(Model):
     cur: fields.ForeignKeyRelation[Cur] = fields.ForeignKeyField("models.Cur")
     blocked: fields.BooleanField = fields.BooleanField(default=False)
 
+    class Meta:
+        unique_together = (("pt", "cur"),)
+
 
 class Fiat(Model):
     id: int = fields.IntField(pk=True)
-    pt: fields.ForeignKeyRelation[Pt] = fields.ForeignKeyField("models.Pt", related_name="fiats")
-    curs: fields.ManyToManyRelation[Cur] = fields.ManyToManyField("models.Cur", through="fcr", related_name="fiats")
+    ptc: fields.ForeignKeyRelation[Ptc] = fields.ForeignKeyField("models.Ptc")
+    region: fields.CharEnumField(Region) = fields.CharEnumField(Region, null=True)
     detail: str = fields.CharField(127)
-    user: fields.ForeignKeyRelation[User] = fields.ForeignKeyField("models.User", "fiats")
+    user: fields.ForeignKeyRelation[User] = fields.ForeignKeyField("models.User", "fiats")  # only user having client
     amount: float = fields.FloatField(default=0, null=True)
     target: float = fields.FloatField(default=0, null=True)
+
     orders: fields.ReverseRelation["Order"]
 
 
-class Fcr(Model):
-    fiat: fields.ForeignKeyRelation[Fiat] = fields.ForeignKeyField("models.Fiat")
-    cur: fields.ForeignKeyRelation[Cur] = fields.ForeignKeyField("models.Cur")
-    blocked: fields.BooleanField = fields.BooleanField(default=False)
-    region: fields.CharEnumField(Region) = fields.CharEnumField(Region, null=True)
+class Route(Model):
+    ptc_from: fields.ForeignKeyRelation[Ptc] = fields.ForeignKeyField("models.Ptc", related_name="out_routes")
+    ptc_to: fields.ForeignKeyRelation[Ptc] = fields.ForeignKeyField("models.Ptc", related_name="in_routes")
 
 
 class Limit(Model):
-    fiat: fields.ForeignKeyRelation[Fiat] = fields.ForeignKeyField("models.Fiat", related_name="limits")  # from
-    ptg: fields.ForeignKeyRelation[Pt] = fields.ForeignKeyField("models.Ptg", related_name="limits")  # to
-    limit: int = fields.IntField(default=-1)
-    fee: float = fields.IntField(default=0)
+    route: fields.ForeignKeyRelation[Route] = fields.ForeignKeyField("models.Route")
+    limit: int = fields.IntField(default=-1, null=True)  # '$' if unit >= 0 else 'transactions count'
+    unit: int = fields.IntField(default=30)  # positive: $/days, 0: $/transaction, negative: transactions count / days
+    fee: float = fields.IntField(default=0, null=True)  # on multiply Limits for one Route - fees is quanting by minimum unit if units equal, else summing
 
 
 class Asset(Model):
@@ -160,8 +159,8 @@ class Asset(Model):
     lock: float = fields.FloatField()
     target: float = fields.FloatField(default=0, null=True)
 
-    # class Meta:
-    #     unique_together = (("coin", "user"),)
+    class Meta:
+        unique_together = (("coin", "user"),)
 
 
 class Order(Model):
