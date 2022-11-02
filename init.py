@@ -1,42 +1,64 @@
 from asyncio import run
 from tortoise import Tortoise
 
-from db.update import seed_pts
-from db.models import Cur, Coin, Ex, ExType, Pt, Ptc
+from clients.binance_client import get_ads
+from db.ad import ad_proc
+from db.models import Cur, Coin, Pt, Ptc, Ex, ExType
 
 
 async def init():
     await Tortoise.generate_schemas()
 
-    # await Coin.bulk_create(Coin(id=c) for c in [
-    #     "USDT",
-    #     "BTC",
-    #     "ETH",
-    #     "BNB",
-    #     "BUSD",
-    #     "RUB",
-    #     "ADA",
-    #     "TRX",
-    #     "SHIB",
-    #     "MATIC",
-    #     "XRP",
-    #     "SOL",
-    #     "WRX",
-    #     "DAI",
-    #     "DOGE",
-    #     "DOT",
-    # ])
-    # await Cur.bulk_create(Cur(id=c) for c in [
-    #     "RUB",
-    #     "USD",
-    #     "EUR",
-    #     "TRY",
-    # ])
-    # await Ex.create(name="bc2c", type=ExType.p2p)
+    await Coin.bulk_create(Coin(id=c) for c in [
+        "USDT",
+        "BTC",
+        "ETH",
+        "BNB",
+        "BUSD",
+        "RUB",
+        "ADA",
+        "TRX",
+        "SHIB",
+        "MATIC",
+        "XRP",
+        "SOL",
+        "WRX",
+        "DAI",
+        "DOGE",
+        "DOT",
+    ])
+    await Cur.bulk_create(Cur(id=c) for c in [
+        "RUB",
+        "USD",
+        "EUR",
+        "TRY",
+    ])
+    await Ex.create(name="bc2c", type=ExType.p2p)
     # actual payment types seeding
     await seed_pts(1, 2)  # lo-o-ong time
     await pt_ranking()
     await ptg()
+
+
+async def seed_pts(start_page: int = 1, end_page: int = 5):
+    i = 0
+    for isSell in [0, 1]:
+        for cur in await Cur().all().prefetch_related('pts'):
+            for coin in await Coin().all():
+                for page in range(start_page, end_page+1):
+                    res = await get_ads(coin.id, cur.id, isSell, None, 20, page)  # if isSell else [pt.name for pt in pts])
+                    if res.get('data'):
+                        pts = set()
+                        for ad in res['data']:
+                            [pts.add(a['identifier']) for a in ad['adv']['tradeMethods']]
+                            i += 1
+                        pts = [(await Pt.update_or_create(name=pt))[0] for pt in pts]
+                        await cur.pts.add(*pts)
+                        if page == 1:
+                            await ad_proc(res)  # pair upsert
+                    else:
+                        break
+    print('ads processed:', i)
 
 
 async def pt_ranking():
@@ -104,6 +126,8 @@ async def ptg():
     await (await Pt['Advcash']).update_from_dict({'parent': eb}).save()
     await (await Pt['CashDeposit']).update_from_dict({'parent': eb}).save()
 
+
 if __name__ == "__main__":
+    # noinspection PyUnresolvedReferences
     from loader import cns
     run(init())

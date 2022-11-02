@@ -8,8 +8,8 @@ from tortoise import ModelMeta
 from tortoise.backends.asyncpg.client import TransactionWrapper
 from tortoise.signals import Signals
 
-from db.update import user_upd_bc
 from db.models import User, Ad
+from db.user import user_upd_bc
 
 logging.basicConfig(level=logging.DEBUG)
 

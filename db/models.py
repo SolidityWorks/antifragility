@@ -1,5 +1,4 @@
 from enum import IntEnum, Enum
-
 from tortoise import Model, fields
 
 
@@ -38,7 +37,8 @@ class Region(Enum):
 
 class Cur(Model):
     id: str = fields.CharField(3, pk=True)
-    pts: fields.ManyToManyRelation["Pt"]
+    pts: fields.ManyToManyRelation["Ptc"]
+    ptcs: fields.ReverseRelation["Ptc"]
 
 
 class Coin(Model):
@@ -74,7 +74,7 @@ class Pair(Model):
 class User(Model):
     id: int = fields.IntField(pk=True)
     uid: str = fields.CharField(63, unique=True)
-    nickName: str = fields.CharField(63, unique=True, null=True)
+    nickName: str = fields.CharField(63)
     ex: fields.ForeignKeyRelation[Ex] = fields.ForeignKeyField("models.Ex", related_name="users")
     auth: {} = fields.JSONField(null=True)
     client: fields.ForeignKeyNullableRelation["Client"] = fields.ForeignKeyField("models.Client", related_name="users", null=True)
@@ -122,6 +122,7 @@ class Pt(Model):
     curs: fields.ManyToManyRelation[Cur] = fields.ManyToManyField("models.Cur", through="ptc")
 
     pairs: fields.ReverseRelation[Pair]
+    curs: fields.ReverseRelation["Cur"]
     fiats: fields.ReverseRelation["Fiat"]
     orders: fields.ReverseRelation["Order"]
     children: fields.ReverseRelation["Pt"]
@@ -139,6 +140,7 @@ class Ptc(Model):
 class Fiat(Model):
     id: int = fields.IntField(pk=True)
     ptc: fields.ForeignKeyRelation[Ptc] = fields.ForeignKeyField("models.Ptc")
+    pts: fields.ManyToManyRelation[Ptc] = fields.ManyToManyField("models.Pt", through="ptc")
     region: fields.CharEnumField(Region) = fields.CharEnumField(Region, null=True)
     detail: str = fields.CharField(127)
     user: fields.ForeignKeyRelation[User] = fields.ForeignKeyField("models.User", "fiats")  # only user having client

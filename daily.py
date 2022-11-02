@@ -1,11 +1,12 @@
 import asyncio
 from math import ceil
-
 from tortoise import Tortoise
 
 from clients.binance_client import get_arch_orders
+from db.fiat import upd_fiats, upd_founds
 from db.models import Client, User
-from db.update import upd_fiats, upd_founds, orders_proc
+from db.order import orders_proc
+from init import seed_pts
 
 
 async def update():
@@ -37,5 +38,6 @@ async def arch_orders(user: User, part: int = 0, page: int = 0):  # payment meth
 
 
 if __name__ == "__main__":
+    # noinspection PyUnresolvedReferences
     from loader import cns
     asyncio.run(update())
