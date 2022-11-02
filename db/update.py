@@ -1,9 +1,9 @@
-from clients.binance_client import get_ads, get_my_pts, balance, arch_orders
-from db.models import User, Client, ClientStatus, Ex, Cur, Coin, Pair, Ad, Pt, Fiat, Asset, Order, OrderStatus, Ptc
+from clients.binance_client import get_ads, get_my_pts, balance
+from db.models import User, Client, ClientStatus, Ex, Cur, Coin, Pair, Ad, Pt, Fiat, Asset, Order, Ptc
 
 
-async def get_bc2c_users() -> [User]:
-    return await User.filter(ex_id=1, client__status__gte=ClientStatus.own)  # .all()  # the same result
+async def get_bc2c_users(pref: [] = None) -> [User]:
+    return await User.filter(ex_id=1, client__status__gte=ClientStatus.own).prefetch_related(*(pref or []))  # .all()  # the same result
 
 
 async def upd_fiats():
@@ -60,7 +60,7 @@ async def upd_founds():
 # # # users:
 async def user_upd_bc(uid: int, gmail: str, nick: str, cook: str, tok: str) -> {}:  # bc: binance credentials
     client, cr = await Client.get_or_create(gmail=gmail)
-    user, cr = await User.get_or_create(uid=uid, client=client, ex=await Ex.get(name="bc2c"))
+    user, cr = await User.get_or_create(id=uid, uid='', client=client, ex=await Ex.get(name="bc2c"))
     # noinspection PyAsyncCall
     user.update_from_dict({'nickName': nick, 'auth': {"cook": cook, "tok": tok}})
     await user.save()
@@ -108,7 +108,9 @@ async def ad_proc(res: {}, pts_cur: {str} = None):
 
     # Ad
     idd = int(adv['advNo']) - 10 ** 19
-    ad_upd = {'price': float(adv['price']), 'maxFiat': float(adv['dynamicMaxSingleTransAmount']), 'minFiat': adv['minSingleTransAmount']}
+    ad_upd = {'price': float(adv['price']), 'maxFiat': float(adv['dynamicMaxSingleTransAmount']),
+              'minFiat': adv['minSingleTransAmount'], 'detail': adv['remarks'], 'autoMsg': adv['autoReplyMsg']}
+    # ad, cr = await Ad.update_or_create(ad_upd, id=idd)  # maybe later refactor
     if ad := await Ad.get_or_none(id=idd).prefetch_related('pts'):
         pts_old: {str} = set(pt.name for pt in ad.pts)
         if ad.price != ad_upd['price'] or ad.maxFiat != ad_upd['maxFiat']:  # or ad.minFiat != ad_upd['minFiat']  # todo: separate diffs
@@ -121,8 +123,7 @@ async def ad_proc(res: {}, pts_cur: {str} = None):
     else:
         # user for ad
         usr = res['data'][0]['advertiser']
-        if not (user := await User.get_or_none(uid=usr['userNo'])):
-            user: User = await User.create(uid=usr['userNo'], nickName=usr['nickName'], ex_id=1)
+        user, cr = await User.update_or_create({'nickName': usr['nickName'], 'ex_id': 1}, uid=usr['userNo'])
         ad: Ad = await Ad.create(id=idd, pair=pair, user=user, **ad_upd)
 
         # pts
@@ -133,31 +134,71 @@ async def ad_proc(res: {}, pts_cur: {str} = None):
     print(f"{pair.id}: {pair} [{pair.total}] {ad.price} * ({ad.minFiat}-{ad.maxFiat}) :", *pts_new)
 
 
-async def orders_fill():
-    clients: [Client] = await Client.filter(status__gte=3).prefetch_related('users')
-    for client in clients:
-        [await arch_orders(user) for user in client.users]
+async def orders_proc(orders: [{}], user: User):
+    for od in orders:  # todo: refact to bulk_create
+        order = await ordr(od, user)
+        if o := await Order.get_or_none(id=order['id']):
+            await o.update_from_dict(order).save()
+            print('', end=':')
+        else:
+            await Order.create(**order)
+            print('', end='.')
 
 
 async def ordr(d: {}, user: User):  # class helps to create ad object from input data
+    if not user.uid:
+        if d['buyerNickname'] == user.nickName:
+            user.uid = d['buyerUserNo']
+        elif d['sellerNickname'] == user.nickName:
+            user.uid = d['sellerUserNo']
+        await user.save()
+    old_pts = {
+        'Tinkoff': 'TinkoffNew',
+        'RosBank': 'RosBankNew',
+        'Sberbank': 'RosBankNew',
+        'VTBBank': 'RosBankNew',
+        'OtkritieBank': 'RosBankNew',
+        'SovkomBank': 'RosBankNew',
+        'YandexMoney': 'YandexMoneyNew',
+        'PostBank': 'PostBankNew',
+        'PostBankRussia': 'PostBankNew',
+        'RaiffeisenBankRussia': 'RaiffeisenBank',
+        'AlfaBank': 'ABank',
+    }
+    ptsd = {p['id']: old_pts.get(p['identifier'], p['identifier']) for p in d['payMethods']}
+
     aid: int = int(d['advNo']) - 10 ** 19
-    ptsd = {p['id']: p['identifier'] for p in d['payMethods']}
     sell: bool = d['tradeType'] == 'SELL'
-    if not (ad := await Ad.get_or_none(id=aid).prefetch_related('pts')):
+    if not await Ad.exists(id=aid):
         pair = await Pair.get(sell=sell, coin_id=d['asset'], cur_id=d['fiat'])
-        ad = await Ad.create(id=aid, price=d['price'], maxFiat=d['totalPrice'], minFiat=d['totalPrice'], pair=pair)
+        ad = await Ad.create(id=aid, price=d['price'], maxFiat=d['totalPrice'], minFiat=d['totalPrice'], pair=pair, user=user)
         await ad.pts.add(*[await Pt[pt] for pt in ptsd.values()])
 
     pt: str = ptsd.get(d['selectedPayId'])
 
     if sell:  # I receive to this fiat
-        fiat: Fiat = await Fiat[d['selectedPayId']] if d['selectedPayId'] else None
-    else:  # I pay from this fiat. Search my fiat by pt
-        fiats = await Fiat.filter(pt_id=pt, user_id=user.id).prefetch_related('curs')
-        fiats = [f for f in fiats if d['fiat'] in [c.id for c in f.curs]]
-        if len(fiats) != 1:
-            print('WARNING FIATS STRUCTURE:', fiats)
-        fiat = fiats[0]
+        fiat: Fiat = await Fiat.get_or_none(id=d['selectedPayId']) if d['selectedPayId'] else None
+    else:
+        if not (ptc := await Ptc.get_or_none(pt_id=pt, cur_id=d['fiat'])):  # I pay from this fiat. Search my fiat by pt
+            if not len(ptsd):
+                print(ptsd)
+            else:
+                if not (ptc := await Ptc.filter(pt_id__in=ptsd.values(), cur_id=d['fiat']).first()):
+                    print(ptsd)  # only for debug
+        if not (fiat := await Fiat.filter(ptc=ptc, user=user).first()):
+            if not ptc:
+                print(pt)
+            pto: Pt = await ptc.pt
+            if par := await pto.parent:
+                children = await par.children
+                in_group_ptcs = [await Ptc.get_or_none(pt=c, cur_id=d['fiat']) for c in children]
+                if None in in_group_ptcs:
+                    in_group_ptcs = list(filter(lambda x: x, in_group_ptcs))
+                    print(par)
+                fiat = await Fiat.filter(ptc_id__in=[pc.id for pc in in_group_ptcs], user=user).first()
+            else:
+                print(pto)
+                fiat = None
 
     return {
         'id': int(d['orderNumber']) - 2*10**19,
@@ -165,7 +206,8 @@ async def ordr(d: {}, user: User):  # class helps to create ad object from input
         'amount': float(d['amount']),
         'pt_id': pt,
         'fiat': fiat,
-        'user': user,
+        'taker': (await User.get_or_create({'nickName': d['nickName'], 'ex_id': 1}, uid=d['userNo']))[0] if d['makerUserNo'] == user.uid else user,
         # 'arch': d['archived'],
         'status': d['orderStatus'],
+        'created_at': int(d['createTime']/1000)
     }

@@ -8,33 +8,33 @@ from db.models import Cur, Coin, Ex, ExType, Pt, Ptc
 async def init():
     await Tortoise.generate_schemas()
 
-    await Coin.bulk_create(Coin(id=c) for c in [
-        "USDT",
-        "BTC",
-        "ETH",
-        "BNB",
-        "BUSD",
-        "RUB",
-        "ADA",
-        "TRX",
-        "SHIB",
-        "MATIC",
-        "XRP",
-        "SOL",
-        "WRX",
-        "DAI",
-        "DOGE",
-        "DOT",
-    ])
-    await Cur.bulk_create(Cur(id=c) for c in [
-        "RUB",
-        "USD",
-        "EUR",
-        "TRY",
-    ])
-    await Ex.create(name="bc2c", type=ExType.p2p)
+    # await Coin.bulk_create(Coin(id=c) for c in [
+    #     "USDT",
+    #     "BTC",
+    #     "ETH",
+    #     "BNB",
+    #     "BUSD",
+    #     "RUB",
+    #     "ADA",
+    #     "TRX",
+    #     "SHIB",
+    #     "MATIC",
+    #     "XRP",
+    #     "SOL",
+    #     "WRX",
+    #     "DAI",
+    #     "DOGE",
+    #     "DOT",
+    # ])
+    # await Cur.bulk_create(Cur(id=c) for c in [
+    #     "RUB",
+    #     "USD",
+    #     "EUR",
+    #     "TRY",
+    # ])
+    # await Ex.create(name="bc2c", type=ExType.p2p)
     # actual payment types seeding
-    await seed_pts(1, 3)  # lo-o-ong time
+    await seed_pts(1, 2)  # lo-o-ong time
     await pt_ranking()
     await ptg()
 
@@ -79,6 +79,7 @@ async def ptg():
     alf = await Pt.create(name='AlfaBank', rank=-5, parent=rb)
     await Ptc.create(pt=alf, blocked=True, cur_id='RUB')
     await Ptc.create(pt_id='CashDeposit', blocked=True, cur_id='RUB')
+    await Ptc.create(pt_id='ABank', cur_id='RUB')
     tb, _ = await Pt.get_or_create(name='TurkBanks', parent=bc)
     await (await Pt['Akbank']).update_from_dict({'parent': tb}).save()
     await (await Pt['alBaraka']).update_from_dict({'parent': tb}).save()

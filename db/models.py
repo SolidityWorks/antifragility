@@ -81,6 +81,14 @@ class User(Model):
     is_active: bool = fields.BooleanField(default=True, null=True)
     updated_at = fields.DatetimeField(auto_now=True)
 
+    # @staticmethod
+    # def defs(data: {}):
+    #     return {
+    #         'nickName': data['nickName'],
+    #         'uid': data['userNo'],
+    #         'ex_id': 1,
+    #     }
+
 
 class Client(Model):
     gmail: str = fields.CharField(31, pk=True)
@@ -99,6 +107,8 @@ class Ad(Model):
     pts: fields.ManyToManyRelation["Pt"] = fields.ManyToManyField("models.Pt")  # only root pts
     maxFiat: float = fields.FloatField()
     minFiat: float = fields.FloatField()
+    detail: str = fields.CharField(255, null=True)
+    autoMsg: str = fields.CharField(255, null=True)
     user: fields.ForeignKeyRelation = fields.ForeignKeyField("models.User", "ads")
     created_at = fields.DatetimeField(auto_now_add=True)
     updated_at = fields.DatetimeField(auto_now=True, index=True)
@@ -169,7 +179,7 @@ class Order(Model):
     amount: float = fields.FloatField()
     fiat: fields.ForeignKeyRelation[Fiat] = fields.ForeignKeyField("models.Fiat", related_name="orders", null=True)
     pt: fields.ForeignKeyNullableRelation[Pt] = fields.ForeignKeyField("models.Pt", related_name="orders", null=True)
-    user: fields.ForeignKeyRelation[User] = fields.ForeignKeyField("models.User", "orders")
+    taker: fields.ForeignKeyRelation[User] = fields.ForeignKeyField("models.User", "orders")
     status: OrderStatus = fields.IntEnumField(OrderStatus)
     created_at = fields.DatetimeField(auto_now_add=True)
     updated_at = fields.DatetimeField(auto_now=True)
