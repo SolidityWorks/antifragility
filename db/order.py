@@ -1,3 +1,4 @@
+from clients.binance_client import get_ad
 from db.models import Order, Ad, Fiat, Pair, Pt, Ptc, User
 
 
@@ -38,7 +39,25 @@ async def ordr(d: {}, user: User):  # class helps to create ad object from input
     sell: bool = d['tradeType'] == 'SELL'
     if not await Ad.exists(id=aid):
         pair = await Pair.get(sell=sell, coin_id=d['asset'], cur_id=d['fiat'])
-        ad = await Ad.create(id=aid, price=d['price'], maxFiat=d['totalPrice'], minFiat=d['totalPrice'], pair=pair, user=user)
+        ap = {
+            'id': aid,
+            'pair': pair,
+            'price': d['price'],
+            'minFiat': d['totalPrice'],
+            'maxFiat': d['totalPrice'],
+            'created_at': int(d['createTime']/1000),
+            'status': 9,
+            'user': (await User.get_or_create({'nickName': d['makerNickname'], 'ex_id': 1}, uid=d[f'makerUserNo']))[0]
+        }
+        if add := await get_ad(d['advNo']):
+            ap.update({
+                'status': add['adv']['advStatus'],
+                'created_at': int(add['adv']['createTime']/1000),
+                'updated_at': int(add['adv']['advUpdateTime']/1000),
+                'detail': add['adv']['remarks'],
+                'autoMsg': add['adv']['autoReplyMsg'],
+            })
+        ad = await Ad.create(**ap)
         await ad.pts.add(*[await Pt[pt] for pt in ptsd.values()])
 
     pt: str = ptsd.get(d['selectedPayId'])
@@ -73,8 +92,10 @@ async def ordr(d: {}, user: User):  # class helps to create ad object from input
         'amount': float(d['amount']),
         'pt_id': pt,
         'fiat': fiat,
-        'taker': (await User.get_or_create({'nickName': d[f'{tter}Nickname'], 'ex_id': 1}, uid=d[f'{tter}UserNo']))[0] if d['makerUserNo'] == user.uid else user,
+        'taker': (await User.get_or_create({'nickName': d[f'{tter}Nickname']}, uid=d[f'{tter}UserNo'], ex_id=1))[0] if d['makerUserNo'] == user.uid else user,
         # 'arch': d['archived'],
         'status': d['orderStatus'],
-        'created_at': int(d['createTime']/1000)
+        'created_at': int(d['createTime']/1000),
+        'notify_pay_at': int(d['notifyPayEndTime']/1000) if d['notifyPayEndTime'] else None,
+        'confirm_pay_at': int(d['confirmPayEndTime']/1000) if d['confirmPayEndTime'] else None
     }

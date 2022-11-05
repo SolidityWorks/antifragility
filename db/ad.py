@@ -25,8 +25,10 @@ async def ad_proc(res: {}, pts_cur: {str} = None):
 
     # Ad
     idd = int(adv['advNo']) - 10 ** 19
-    ad_upd = {'price': float(adv['price']), 'maxFiat': float(adv['dynamicMaxSingleTransAmount']),
+    ad_upd = {'price': float(adv['price']), 'maxFiat': float(adv['dynamicMaxSingleTransAmount']), 'status': adv['advStatus'] or 0,
               'minFiat': adv['minSingleTransAmount'], 'detail': adv['remarks'], 'autoMsg': adv['autoReplyMsg']}
+    if adv['createTime']:
+        ad_upd.update({'created_at': adv['createTime'], 'updated_at': adv['advUpdateTime']})
     # ad, cr = await Ad.update_or_create(ad_upd, id=idd)  # todo: maybe later refactor
     if ad := await Ad.get_or_none(id=idd).prefetch_related('pts'):
         pts_old: {str} = set(pt.name for pt in ad.pts)
@@ -76,6 +78,7 @@ async def my_ads_actualize():
                 'autoMsg': ad['autoReplyMsg'],
                 'created_at': int(ad['createTime']/1000),
                 'updated_at': int(ad['advUpdateTime']/1000),
+                'status': ad['advStatus']
             }
             adv, cr = await Ad.update_or_create(ap, id=int(ad['advNo']) - 10 ** 19)
             await adv.pts.add(*[await Pt[a['identifier']] for a in ad['tradeMethods']])

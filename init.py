@@ -26,6 +26,8 @@ async def init():
         "DAI",
         "DOGE",
         "DOT",
+        "CAKE",
+        "ICP",
     ])
     await Cur.bulk_create(Cur(id=c) for c in [
         "RUB",

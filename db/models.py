@@ -11,6 +11,15 @@ class ClientStatus(IntEnum):
     block = 0
 
 
+class AdvStatus(IntEnum):
+    defActive = 0
+    active = 1
+    two = 2
+    old = 3
+    four = 4
+    notFound = 9
+
+
 class OrderStatus(IntEnum):
     zero = 0
     one = 1
@@ -73,7 +82,7 @@ class Pair(Model):
 
 class User(Model):
     id: int = fields.IntField(pk=True)
-    uid: str = fields.CharField(63, unique=True)
+    uid: str = fields.CharField(63, unique=True, null=True)
     nickName: str = fields.CharField(63)
     ex: fields.ForeignKeyRelation[Ex] = fields.ForeignKeyField("models.Ex", related_name="users")
     auth: {} = fields.JSONField(null=True)
@@ -107,11 +116,13 @@ class Ad(Model):
     pts: fields.ManyToManyRelation["Pt"] = fields.ManyToManyField("models.Pt")  # only root pts
     maxFiat: float = fields.FloatField()
     minFiat: float = fields.FloatField()
-    detail: str = fields.CharField(255, null=True)
+    detail: str = fields.CharField(4095, null=True)
     autoMsg: str = fields.CharField(255, null=True)
     user: fields.ForeignKeyRelation = fields.ForeignKeyField("models.User", "ads")
+    status: AdvStatus = fields.IntEnumField(AdvStatus)
     created_at = fields.DatetimeField(auto_now_add=True)
     updated_at = fields.DatetimeField(auto_now=True, index=True)
+
     orders: fields.ReverseRelation["Order"]
 
 
@@ -183,5 +194,7 @@ class Order(Model):
     pt: fields.ForeignKeyNullableRelation[Pt] = fields.ForeignKeyField("models.Pt", related_name="orders", null=True)
     taker: fields.ForeignKeyRelation[User] = fields.ForeignKeyField("models.User", "orders")
     status: OrderStatus = fields.IntEnumField(OrderStatus)
-    created_at = fields.DatetimeField(auto_now_add=True)
-    updated_at = fields.DatetimeField(auto_now=True)
+    created_at = fields.DatetimeField()
+    updated_in_db_at = fields.DatetimeField(auto_now=True)
+    notify_pay_at = fields.DatetimeField(null=True)
+    confirm_pay_at = fields.DatetimeField(null=True)

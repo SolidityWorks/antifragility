@@ -7,6 +7,6 @@ async def get_bc2c_users(pref: [] = None) -> [User]:
 
 async def user_upd_bc(uid: int, gmail: str, nick: str, cook: str, tok: str) -> {}:  # bc: binance credentials
     client, cr = await Client.get_or_create(gmail=gmail)
-    df = {'nickName': nick, 'auth': {"cook": cook, "tok": tok}, 'client': client, 'uid': ''}
+    df = {'nickName': nick, 'auth': {"cook": cook, "tok": tok}, 'client': client}
     user, cr = await User.update_or_create(df, id=uid, ex_id=1)
     return user

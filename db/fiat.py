@@ -24,7 +24,26 @@ fiat_cur_map: {} = {
     17746495: 'USD',
     17746422: 'RUB',
     16026051: 'RUB',
-    #  user
+    # 464569741 user
+    26650384: 'EUR',
+    25369175: 'RUB',
+    25369016: 'TRY',
+    25368976: 'TRY',
+    25368946: 'TRY',
+    25368900: 'TRY',
+    24078870: 'TRY',
+    24078726: 'TRY',
+    24078619: 'TRY',
+    24078327: 'TRY',
+    24075530: 'TRY',
+    24054373: 'RUB',
+    20450418: 'RUB',
+    20450254: 'RUB',
+    20450225: 'RUB',
+    20450071: 'RUB',
+    20449950: 'RUB',
+    20405239: 'RUB',
+    20376008: 'RUB',
 }
 
 
@@ -37,7 +56,7 @@ async def upd_fiats():
         for pt in my_pts:
             dtl = pt['fields'][3 if pt['identifier'] == 'Advcash' else 1]['fieldValue']
             ptc, _ = await Ptc.get_or_create(cur_id=fiat_cur_map[pt['id']], pt_id=pt['identifier'])
-            await Fiat.update_or_create(id=pt['id'], user=user, ptc=ptc, detail=dtl)
+            await Fiat.update_or_create({'user': user, 'ptc': ptc, 'detail': dtl}, id=pt['id'])
 
 
 async def upd_founds():

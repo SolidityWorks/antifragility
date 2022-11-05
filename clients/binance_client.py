@@ -7,6 +7,7 @@ from db.models import User
 gap = 0.01
 HOST = 'https://c2c.binance.com/'
 ADS_PTH = 'bapi/c2c/v2/friendly/c2c/adv/search'
+AD_PTH = 'bapi/c2c/v2/public/c2c/adv/selected-adv/'
 MY_ADS_PTH = 'bapi/c2c/v2/private/c2c/adv/list-by-page'
 PTS_PTH = 'bapi/c2c/v2/private/c2c/pay-method/user-paymethods'
 ORD_PTH = 'bapi/c2c/v2/private/c2c/order-match/order-list'
@@ -87,3 +88,9 @@ async def get_ads(asset: str, cur: str, sell: int = 0, pts: [str] = None, rows: 
                # "transAmount": amount
                }
     return await breq(ADS_PTH, None, payload)
+
+
+async def get_ad(aid: str):
+    res = await breq(AD_PTH+aid, is_post=False)
+    return res.get('data')
+
