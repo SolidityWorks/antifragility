@@ -29,11 +29,14 @@ async def ad_proc(res: {}, pts_cur: {str} = None):
               'minFiat': adv['minSingleTransAmount'], 'detail': adv['remarks'], 'autoMsg': adv['autoReplyMsg']}
     if adv['createTime']:
         ad_upd.update({'created_at': adv['createTime'], 'updated_at': adv['advUpdateTime']})
+
+    ad_mod: int = 0
     # ad, cr = await Ad.update_or_create(ad_upd, id=idd)  # todo: maybe later refactor
     if ad := await Ad.get_or_none(id=idd).prefetch_related('pts'):
         pts_old: {str} = set(pt.name for pt in ad.pts)
         if ad.price != ad_upd['price'] or ad.maxFiat != ad_upd['maxFiat']:  # or ad.minFiat != ad_upd['minFiat']  # todo: separate diffs
             await ad.update_from_dict(ad_upd).save()
+            ad_mod += 1
         if pts_old != pts_new:
             await ad.pts.clear()
             for pt in pts_new:
@@ -42,6 +45,7 @@ async def ad_proc(res: {}, pts_cur: {str} = None):
                 if cr:
                     await pto.curs.add(await Cur[adv['fiatUnit']])
             await ad.pts.add(*pts)
+            ad_mod += 1
 
     else:
         # user for ad
@@ -57,10 +61,11 @@ async def ad_proc(res: {}, pts_cur: {str} = None):
                 if cr:
                     await pto.curs.add(await Cur[adv['fiatUnit']])
         await ad.pts.add(*pts)
+        ad_mod += 3
 
-    # if pts:
-    print(f"{pair.id}: {pair} [{pair.total}] {ad.price} * ({ad.minFiat}-{ad.maxFiat}) :", *pts_new)
-    return
+    if ad_mod:
+        print(f"{pair.id}: {pair} [{pair.total}] {ad.price} * ({ad.minFiat}-{ad.maxFiat}) :", *pts_new)
+    return ad_mod
 
 
 async def my_ads_actualize():

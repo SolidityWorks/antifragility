@@ -14,12 +14,12 @@ logging.basicConfig(level=logging.DEBUG)
 
 async def sse(request: Request):
     data = []
-    pairs = request.match_info['pair_id'].split(',')
+    pairs = request.match_info.get('pair_id', '').split(',')
 
     # noinspection PyUnusedLocal
     async def watchdog(cn: Connection, pid: int, channel: str, payload: str):
         ad = json.loads(payload)
-        if str(ad['pair_id']) in pairs or not pairs:
+        if str(ad['pair_id']) in pairs or not pairs[0]:
             data.append(f"{ad['pair_id']}: {ad['price']}")
 
     conn: Connection = await connect(dsn)
@@ -43,7 +43,8 @@ async def add_user(request: Request):
 app = web.Application()
 
 app.add_routes([
-    web.get("/sse/{pair_id}", sse),
+    web.get("/sse", sse),
+    web.get("/ssf/{pair_id}", sse),
     web.post("/user/bc", add_user)
 ])
 

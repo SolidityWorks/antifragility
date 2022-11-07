@@ -1,7 +1,7 @@
-from asyncio import run
+from asyncio import run, sleep
 
-from clients.binance_client import get_ads, get_my_ads
-from db.models import Pair, Fiat, Ad, Pt
+from clients.binance_client import get_ads
+from db.models import Pair, Fiat
 from db.ad import ad_proc
 from db.user import get_bc2c_users
 
@@ -11,6 +11,9 @@ async def cycle():
         pairs: [Pair] = await users[0].ex.pairs
         while True:
             await tick(pairs)
+            await sleep(1)
+
+asci_map = [u"\u2591", u"\u2592", u"\u2593", u"\u2588"]
 
 
 async def tick(pairs: [Pair]):
@@ -24,13 +27,12 @@ async def tick(pairs: [Pair]):
             else:
                 pts = await (await pair.cur).pts.filter(rank__gte=0)
                 pts = {pt.name for pt in pts}
-            await ad_proc(res, pts)
+            ad_mod = await ad_proc(res, pts)
             suc += 1
             # just process indicate:
-            # print(spinner[cnt], end='\r')  # todo: stats prettier
             print('[', end='')
             for x in range(suc + err):
-                print(u"\u2588", end='')
+                print(asci_map[ad_mod], end='')
             for x in range(lp - suc - err):
                 print("_", end='')
             print(']', end='\r')
@@ -41,9 +43,7 @@ async def tick(pairs: [Pair]):
             err += 1
             print(f'NO Ads for pair {pair.id}: {pair}')
     print(f'\nSuccess: {suc}, Error: {err}, All: {lp}\n')
-
-
-spinner = ('|', '/', '-', '\\',)
+    await sleep(1)
 
 
 if __name__ == "__main__":
