@@ -1,6 +1,8 @@
 import json
 import logging
 import asyncio
+from time import time
+
 from aiohttp import web
 from aiohttp.web_request import Request
 from aiohttp_sse import sse_response
@@ -20,12 +22,12 @@ async def sse(request: Request):
     async def watchdog(cn: Connection, pid: int, channel: str, payload: str):
         ad = json.loads(payload)
         if str(ad['pair_id']) in pairs or not pairs[0]:
-            data.append(f"{ad['pair_id']}: {ad['price']}")
+            data.append(json.dumps({ad['pair_id']: {"x": time()*1000, "y": ad['price']}}))
 
     conn: Connection = await connect(dsn)
     await conn.add_listener('pc', watchdog)
 
-    async with sse_response(request) as resp:
+    async with sse_response(request, headers={'Access-Control-Allow-Origin': '*'}) as resp:
         while resp.status == 200:
             if data:
                 d = data.pop()
