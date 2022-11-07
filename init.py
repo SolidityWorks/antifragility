@@ -8,6 +8,17 @@ from db.models import Cur, Coin, Pt, Ptc, Ex, ExType
 
 async def init():
     await Tortoise.generate_schemas()
+    await cns[0].execute_script('''
+CREATE FUNCTION price_upd() returns trigger as
+$$
+BEGIN
+    PERFORM pg_notify('pc', row_to_json(NEW)::varchar);
+    RETURN NEW;
+END
+$$ LANGUAGE plpgsql;
+CREATE TRIGGER price_upd AFTER UPDATE OR INSERT ON ad
+    FOR EACH ROW EXECUTE PROCEDURE price_upd();
+    ''')
 
     await Coin.bulk_create(Coin(id=c) for c in [
         "USDT",
@@ -130,6 +141,5 @@ async def ptg():
 
 
 if __name__ == "__main__":
-    # noinspection PyUnresolvedReferences
     from loader import cns
     run(init())
