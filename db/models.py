@@ -29,6 +29,7 @@ class OrderStatus(IntEnum):
     fifth = 5
     canceled = 6
     paid_and_canceled = 7
+    # COMPLETED, PENDING, TRADING, BUYER_PAYED, DISTRIBUTING, COMPLETED, IN_APPEAL, CANCELLED, CANCELLED_BY_SYSTEM
 
 
 class ExType(Enum):
