@@ -90,6 +90,8 @@ class User(Model):
     client: fields.ForeignKeyNullableRelation["Client"] = fields.ForeignKeyField("models.Client", related_name="users", null=True)
     is_active: bool = fields.BooleanField(default=True, null=True)
     updated_at = fields.DatetimeField(auto_now=True)
+    orders: fields.ReverseRelation["Order"]
+    ads: fields.ReverseRelation["Ad"]
 
     # @staticmethod
     # def defs(data: {}):
@@ -189,7 +191,7 @@ class Asset(Model):
 
 class Order(Model):
     id: int = fields.BigIntField(pk=True)
-    ad: fields.ForeignKeyRelation[Ad] = fields.ForeignKeyField("models.Ad", related_name="orders")
+    ad: fields.ForeignKeyRelation[Ad] = fields.ForeignKeyField("models.Ad", related_name="ads")
     amount: float = fields.FloatField()
     fiat: fields.ForeignKeyRelation[Fiat] = fields.ForeignKeyField("models.Fiat", related_name="orders", null=True)
     pt: fields.ForeignKeyNullableRelation[Pt] = fields.ForeignKeyField("models.Pt", related_name="orders", null=True)

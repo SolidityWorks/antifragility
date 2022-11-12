@@ -1,7 +1,7 @@
 from asyncio import run
 from tortoise import Tortoise
 
-from clients.binance_client import get_ads
+from clients.binance_с2с import get_ads
 from db.ad import ad_proc
 from db.models import Cur, Coin, Pt, Ptc, Ex, ExType
 

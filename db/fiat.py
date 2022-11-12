@@ -1,4 +1,4 @@
-from clients.binance_client import get_my_pts, balance
+from clients.binance_с2с import get_my_pts, balance
 from db.models import Ptc, Fiat, Pt, Asset
 from db.user import get_bc2c_users
 

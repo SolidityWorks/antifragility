@@ -2,11 +2,10 @@ import asyncio
 from math import ceil
 from tortoise import Tortoise
 
-from clients.binance_client import get_arch_orders
+from clients.binance_с2с import get_arch_orders
 from db.fiat import upd_fiats, upd_founds
 from db.models import Client, User
 from db.order import orders_proc
-from init import seed_pts
 
 
 async def update():
@@ -14,16 +13,13 @@ async def update():
     # actual
     await upd_fiats()
     await upd_founds()
-
-    # await seed_pts(3, 3)  # lo-o-ong time
-    # todo: only first time
     await orders_fill()
 
 
 async def orders_fill():
     clients: [Client] = await Client.filter(status__gte=3).prefetch_related('users')
     for client in clients:
-        [await arch_orders(user) for user in client.users]
+        [await arch_orders(user) for user in client.users if not len(await user.orders.limit(1))]  # only for users with no orders
 
 
 async def arch_orders(user: User, part: int = 0, page: int = 0):  # payment methods

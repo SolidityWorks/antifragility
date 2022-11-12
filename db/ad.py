@@ -1,6 +1,6 @@
 from asyncio import run
 
-from clients.binance_client import get_my_ads
+from clients.binance_с2с import get_my_ads
 from db.models import Ad, Pair, Pt, User, Cur
 from db.user import get_bc2c_users
 

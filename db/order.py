@@ -1,4 +1,4 @@
-from clients.binance_client import get_ad
+from clients.binance_с2с import get_ad
 from db.models import Order, Ad, Fiat, Pair, Pt, Ptc, User
 
 

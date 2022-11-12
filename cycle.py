@@ -1,6 +1,6 @@
 from asyncio import run, sleep
 
-from clients.binance_client import get_ads
+from clients.binance_с2с import get_ads
 from db.models import Pair, Fiat
 from db.ad import ad_proc
 from db.user import get_bc2c_users
