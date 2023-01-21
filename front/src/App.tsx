@@ -1,8 +1,9 @@
-import {useEffect, useState} from 'react'
+import {useEffect, useState, } from 'react'
 import './App.css'
 import 'chartjs-adapter-date-fns'
 import {Chart as ChartJS, Legend, LinearScale, LogarithmicScale, LineElement, PointElement, TimeScale, Title, Tooltip} from 'chart.js'
 import {Scatter} from "react-chartjs-2";
+import {useSearchParams} from "react-router-dom";
 
 ChartJS.register(
     LinearScale,
@@ -29,7 +30,7 @@ const options = {
     },
 }
 
-const evtSource = new EventSource("http://127.0.0.1:8000/sse")
+const evtSource = new EventSource("http://127.0.0.1:8000/ssf/USDT,BUSD,BNB/all")
 
 evtSource.onopen = (/*e*/) => console.log("Connected."/*, e*/)
 
@@ -120,6 +121,8 @@ const pairs = {
     80: ['DAI','TRY',true],
     81: ['DOGE','TRY',true],
     82: ['DOT','TRY',true],
+    83: ['DOT','TRY',true],
+    84: ['DOT','TRY',true],
 }
 const ip: any = {}
 
@@ -136,6 +139,7 @@ const fresh = (pArr: any) => {
 
 export function App() {
     const [points, setPoints] = useState(ip)
+    let [searchParams, setSearchParams] = useSearchParams();
 
     const dsets: any = {'datasets': []}
 

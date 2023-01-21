@@ -114,7 +114,7 @@ class Client(Model):
 
 class Ad(Model):
     id: int = fields.BigIntField(pk=True)
-    pair: fields.ForeignKeyRelation[Pair] = fields.ForeignKeyField("models.Pair", related_name="ad")
+    pair: fields.ForeignKeyRelation[Pair] = fields.ForeignKeyField("models.Pair")
     price: float = fields.FloatField()
     pts: fields.ManyToManyRelation["Pt"] = fields.ManyToManyField("models.Pt")  # only root pts
     maxFiat: float = fields.FloatField()
