@@ -5,7 +5,7 @@ from tortoise.backends.asyncpg import AsyncpgDBClient
 from tortoise.connection import connections
 
 cns: [AsyncpgDBClient] = []
-dsn = "postgres://artemiev:@/antifragility"
+dsn = "postgres://artemiev:@/af_"
 
 
 async def getin():

@@ -47,6 +47,7 @@ class Region(Enum):
 
 class Cur(Model):
     id: str = fields.CharField(3, pk=True)
+    blocked: bool = fields.BooleanField(default=False)
     pts: fields.ManyToManyRelation["Ptc"]
     ptcs: fields.ReverseRelation["Ptc"]
 
@@ -105,7 +106,7 @@ class User(Model):
 class Client(Model):
     gmail: str = fields.CharField(31, pk=True)
     tg_id: int = fields.IntField(null=True, unique=True)
-    status: ClientStatus = fields.IntEnumField(ClientStatus, default=ClientStatus.wait)
+    status: ClientStatus = fields.IntEnumField(ClientStatus, default=ClientStatus.own)  # todo: in prod default status must be "ClientStatus.wait"
     users: fields.ReverseRelation[User]
 
     def __str__(self):
@@ -158,8 +159,8 @@ class Fiat(Model):
     region: fields.CharEnumField(Region) = fields.CharEnumField(Region, null=True)
     detail: str = fields.CharField(127)
     user: fields.ForeignKeyRelation[User] = fields.ForeignKeyField("models.User", "fiats")  # only user having client
-    amount: float = fields.FloatField(default=0, null=True)
-    target: float = fields.FloatField(default=0, null=True)
+    amount: float = fields.FloatField(default=None, null=True)
+    target: float = fields.FloatField(default=None, null=True)
 
     orders: fields.ReverseRelation["Order"]
 

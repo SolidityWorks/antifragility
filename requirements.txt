@@ -1,3 +1,4 @@
 aiohttp
+aiohttp_sse
 tortoise-orm[asyncpg]
 pyjwt[crypto]
