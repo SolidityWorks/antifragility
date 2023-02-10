@@ -21,7 +21,7 @@ async def ad_proc(res: {}, pts: [(str,)] = None):
         pts_new: {str} = set(pt['identifier'] for pt in adv['tradeMethods'])
         if pts:  # pts filter for cycle update
             if not (pts_new := pts_new & {pt[0] for pt in pts}):
-                print('WARNING! no payment types:', [pt['identifier'] for pt in adv['tradeMethods']])
+                # print('WARNING! no payment types:', [pt['identifier'] for pt in adv['tradeMethods']])
                 continue
         pts: {Pt} = set()
 
@@ -68,6 +68,7 @@ async def ad_proc(res: {}, pts: [(str,)] = None):
         if ad_mod:
             print(f"{pair.id}: {pair} [{pair.total}] {ad.price} * ({ad.minFiat}-{ad.maxFiat}) :", *pts_new)
         return ad_mod
+    return 0
 
 
 async def my_ads_actualize():
