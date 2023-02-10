@@ -15,6 +15,8 @@ MY_ADS = 'bapi/c2c/v2/private/c2c/adv/list-by-page'
 PTS = 'bapi/c2c/v2/private/c2c/pay-method/user-paymethods'
 ORD = 'bapi/c2c/v2/private/c2c/order-match/order-list'
 ORD_ARCH = 'bapi/c2c/v1/private/c2c/order-match/order-list-archived-involved'
+CUR_MIN_AMT = 'bapi/c2c/v1/private/c2c/sys-config/adv-trans-amount-limit'
+RATES = 'bapi/c2c/v1/private/c2c/merchant/get-exchange-rate-list'
 BLNC_URL = 'https://www.binance.com/bapi/asset/v2/private/asset-service/wallet/balance?needBalanceDetail=true'
 
 
@@ -66,10 +68,13 @@ async def act_orders(user: User):  # payment methods
 
 
 async def get_arch_orders(user: User, part: int = 0, page: int = 1):  # payment methods
-    res = await breq(ORD_ARCH, user, {"page": page or 1, "rows": 50, "startDate": int((time()-m6*(part+1))*1000), "endDate": int((time()-m6*part)*1000)})
+    res = await breq(ORD_ARCH, user,
+                     {"page": page or 1, "rows": 50, "startDate": int((time() - m6 * (part + 1)) * 1000),
+                      "endDate": int((time() - m6 * part) * 1000)})
     return res['data'], res['total']
 
-m6 = 60*60*24*30*6
+
+m6 = 60 * 60 * 24 * 30 * 6
 
 
 async def balance(user: User, spot0fond1: 0 | 1 = 1):  # payment methods
@@ -81,10 +86,10 @@ async def balance(user: User, spot0fond1: 0 | 1 = 1):  # payment methods
     return res['data'][spot0fond1]['assetBalances'] if res.get('data') else None
 
 
-async def get_ads(asset: str, cur: str, sell: int = 0, pts: [str] = None, rows: int = 2, page: int = 1):
+async def get_ads(asset: str, cur: str, sell: int = 0, pts: [str] = None, rows: int = 20, page: int = 1):
     payload = {"page": page,
                "rows": rows,
-               "payTypes": pts,
+               # "payTypes": pts,
                "asset": asset,
                "tradeType": "SELL" if sell else "BUY",
                "fiat": cur,
@@ -94,7 +99,7 @@ async def get_ads(asset: str, cur: str, sell: int = 0, pts: [str] = None, rows: 
 
 
 async def get_ad(aid: str):
-    res = await breq(AD+aid, is_post=False)
+    res = await breq(AD + aid, is_post=False)
     return res.get('data')
 
 
@@ -133,10 +138,24 @@ async def upd_ad_status(aid: int, pub: bool = True):  # user, data: {}
     return res.get('data')
 
 
+async def cur_min_amount(cur: str = 'RUB', coin: str = 'USDT'):  # user, data: {}
+    user = await User.get(nickName='Deals')
+    data = {"asset": coin, "fiatCurrency": cur, "tradeType": "BUY", "limitScene": "mass"}
+    res = await breq(CUR_MIN_AMT, user, data)
+    return res.get('data')
+
+
+async def get_rates():  # user, data: {}
+    user = await User.get(nickName='Deals')
+    res = await breq(RATES, user, is_post=False)
+    return {rate['fiatCurrency']: float(rate['exchangeRate']) for rate in res.get('data')}
+
+
 if __name__ == "__main__":
     try:
         from loader import cns
+
         # run(upd_ad())
-        run(upd_ad_status(1419177124233637888))
+        run(get_rates())
     except KeyboardInterrupt:
         print('Stopped.')

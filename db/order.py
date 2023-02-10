@@ -75,12 +75,12 @@ async def ordr(d: {}, user: User):  # class helps to create ad object from input
             if not ptc:
                 print(pt)
             pto: Pt = await ptc.pt
-            if par := await pto.parent:
-                children = await par.children
+            if grp := pto.group:
+                children = await Pt.filter(group=grp)
                 in_group_ptcs = [await Ptc.get_or_none(pt=c, cur_id=d['fiat']) for c in children]
                 if None in in_group_ptcs:
                     in_group_ptcs = list(filter(lambda x: x, in_group_ptcs))
-                    print(par)
+                    print(grp)
                 fiat = await Fiat.filter(ptc_id__in=[pc.id for pc in in_group_ptcs], user=user).first()
             else:
                 print(pto)

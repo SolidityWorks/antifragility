@@ -1,5 +1,5 @@
-from clients.binance_с2с import get_my_pts, balance
-from db.models import Ptc, Fiat, Pt, Asset
+from clients.binance_с2с import get_my_pts, balance, get_rates
+from db.models import Ptc, Fiat, Pt, Asset, Cur
 from db.user import get_bc2c_users
 
 fiat_cur_map: {} = {
@@ -58,6 +58,14 @@ async def upd_fiats():
             dtl = pt['fields'][3 if pt['identifier'] == 'Advcash' else 1]['fieldValue']
             ptc, _ = await Ptc.get_or_create(cur_id=fiat_cur_map[pt['id']], pt_id=pt['identifier'])
             await Fiat.update_or_create({'user': user, 'ptc': ptc, 'detail': dtl}, id=pt['id'])
+        await upd_fiat_rates()
+
+
+async def upd_fiat_rates():
+    r = await get_rates()
+    for cur in await Cur.all():
+        cur.rate = r[cur.id]
+        await cur.save()
 
 
 async def upd_founds():

@@ -47,6 +47,7 @@ class Region(Enum):
 
 class Cur(Model):
     id: str = fields.CharField(3, pk=True)
+    rate: float = fields.FloatField(null=True)
     blocked: bool = fields.BooleanField(default=False)
     pts: fields.ManyToManyRelation["Ptc"]
     ptcs: fields.ReverseRelation["Ptc"]
@@ -133,7 +134,7 @@ class Ad(Model):
 class Pt(Model):
     name: str = fields.CharField(31, pk=True)
     rank = fields.SmallIntField(default=0)
-    parent: fields.ForeignKeyNullableRelation["Pt"] = fields.ForeignKeyField("models.Pt", null=True, related_name="children")
+    group: str = fields.CharField(31, null=True)
     curs: fields.ManyToManyRelation[Cur] = fields.ManyToManyField("models.Cur", through="ptc")
 
     pairs: fields.ReverseRelation[Pair]

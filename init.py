@@ -46,8 +46,10 @@ CREATE TRIGGER price_upd AFTER UPDATE OR INSERT ON ad
         "EUR",
         "TRY",
         "THB",
+        # "AED",
         # "KZT",
         # "UZS",
+        # "UAH",
     ])
     await Ex.create(name="bc2c", type=ExType.p2p)
     # actual payment types seeding
@@ -89,66 +91,70 @@ async def pt_ranking():
 
 
 async def ptg():
-    bc, _ = await Pt.get_or_create(name='BankCards')
-    rb, _ = await Pt.get_or_create(name='RussianBanks', parent=bc)
-    await (await Pt['RosBankNew']).update_from_dict({'parent': rb}).save()
-    await (await Pt['TinkoffNew']).update_from_dict({'parent': rb}).save()
-    await (await Pt['RaiffeisenBank']).update_from_dict({'parent': rb}).save()
-    await (await Pt['PostBankNew']).update_from_dict({'parent': rb}).save()
-    await (await Pt['UralsibBank']).update_from_dict({'parent': rb}).save()
-    await (await Pt['HomeCreditBank']).update_from_dict({'parent': rb}).save()
-    await (await Pt['MTSBank']).update_from_dict({'parent': rb}).save()
-    await (await Pt['AkBarsBank']).update_from_dict({'parent': rb}).save()
-    await (await Pt['UniCreditRussia']).update_from_dict({'parent': rb}).save()
-    await (await Pt['OTPBankRussia']).update_from_dict({'parent': rb}).save()
-    await (await Pt['RussianStandardBank']).update_from_dict({'parent': rb}).save()
-    await (await Pt['BCSBank']).update_from_dict({'parent': rb}).save()
+    rb = 'RussianBanks'
+    await (await Pt['RosBankNew']).update_from_dict({'group': rb}).save()
+    await (await Pt['TinkoffNew']).update_from_dict({'group': rb}).save()
+    await (await Pt['RaiffeisenBank']).update_from_dict({'group': rb}).save()
+    await (await Pt['PostBankNew']).update_from_dict({'group': rb}).save()
+    await (await Pt['UralsibBank']).update_from_dict({'group': rb}).save()
+    await (await Pt['HomeCreditBank']).update_from_dict({'group': rb}).save()
+    await (await Pt['MTSBank']).update_from_dict({'group': rb}).save()
+    await (await Pt['AkBarsBank']).update_from_dict({'group': rb}).save()
+    await (await Pt['UniCreditRussia']).update_from_dict({'group': rb}).save()
+    await (await Pt['OTPBankRussia']).update_from_dict({'group': rb}).save()
+    await (await Pt['RussianStandardBank']).update_from_dict({'group': rb}).save()
+    await (await Pt['BCSBank']).update_from_dict({'group': rb}).save()
+    await (await Pt['BankSaintPetersburg']).update_from_dict({'group': rb}).save()
+    await (await Pt['CitibankRussia']).update_from_dict({'group': rb}).save()
+    await (await Pt['CreditEuropeBank']).update_from_dict({'group': rb}).save()
+    await (await Pt['RenaissanceCredit']).update_from_dict({'group': rb}).save()
     ab, _ = await Pt.get_or_create(name='ABank')  # alfa analog
-    await ab.update_from_dict({'parent': rb}).save()
+    await ab.update_from_dict({'group': rb}).save()
     b, _ = await Pt.get_or_create(name='BANK')  # BankTransfer (only for THB)
     bp, _ = await Ptc.get_or_create(pt=b, cur_id='RUB')
     bp.blocked = True
     await bp.save()
-    sbp = await Pt.create(name='SBP', rank=-5, parent=rb)
+    sbp = await Pt.create(name='SBP', rank=-5, group=rb)
     await Ptc.create(pt=sbp, blocked=True, cur_id='RUB')
-    sbr = await Pt.create(name='Sberbank', rank=-5, parent=rb)
+    sbr = await Pt.create(name='Sberbank', rank=-5, group=rb)
     await Ptc.create(pt=sbr, blocked=True, cur_id='RUB')
-    vtb = await Pt.create(name='VTBBank', rank=-5, parent=rb)
+    vtb = await Pt.create(name='VTBBank', rank=-5, group=rb)
     await Ptc.create(pt=vtb, blocked=True, cur_id='RUB')
-    otkr = await Pt.create(name='OtkritieBank', rank=-5, parent=rb)
+    otkr = await Pt.create(name='OtkritieBank', rank=-5, group=rb)
     await Ptc.create(pt=otkr, blocked=True, cur_id='RUB')
-    svk = await Pt.create(name='SovkomBank', rank=-5, parent=rb)
+    svk = await Pt.create(name='SovkomBank', rank=-5, group=rb)
     await Ptc.create(pt=svk, blocked=True, cur_id='RUB')
-    alf = await Pt.create(name='AlfaBank', rank=-5, parent=rb)
+    alf = await Pt.create(name='AlfaBank', rank=-5, group=rb)
     await Ptc.create(pt=alf, blocked=True, cur_id='RUB')
     await Ptc.create(pt_id='CashDeposit', blocked=True, cur_id='RUB')
     await Ptc.create(pt_id='ABank', cur_id='RUB')
     await Ptc.get_or_create(pt_id='KoronaPay', cur_id='TRY')  # hack for old orders
 
-    # tb, _ = await Pt.get_or_create(name='TurkBanks', parent=bc)
-    # await (await Pt['Akbank']).update_from_dict({'parent': tb}).save()
-    # await (await Pt['alBaraka']).update_from_dict({'parent': tb}).save()
-    # await (await Pt['SpecificBank']).update_from_dict({'parent': tb}).save()
-    # await (await Pt['HALKBANK']).update_from_dict({'parent': tb}).save()
-    # await (await Pt['Fibabanka']).update_from_dict({'parent': tb}).save()
-    # await (await Pt['BAKAIBANK']).update_from_dict({'parent': tb}).save()
-    # await (await Pt['KuveytTurk']).update_from_dict({'parent': tb}).save()
-    # await (await Pt['Ziraat']).update_from_dict({'parent': tb}).save()
-    # await (await Pt['BanktransferTurkey']).update_from_dict({'parent': tb}).save()
-    # await (await Pt['BANK']).update_from_dict({'parent': tb}).save()
-    # await (await Pt['VakifBank']).update_from_dict({'parent': tb}).save()
-    # await (await Pt['Papara']).update_from_dict({'parent': tb}).save()
-    # await (await Pt['QNB']).update_from_dict({'parent': tb}).save()
-    # await (await Pt['ISBANK']).update_from_dict({'parent': tb}).save()
-    # await (await Pt['Garanti']).update_from_dict({'parent': tb}).save()
-    # await (await Pt['DenizBank']).update_from_dict({'parent': tb}).save()
+    tb = 'TurkBanks'
+    await (await Pt['Akbank']).update_from_dict({'group': tb}).save()
+    await (await Pt['alBaraka']).update_from_dict({'group': tb}).save()
+    await (await Pt['SpecificBank']).update_from_dict({'group': tb}).save()
+    await (await Pt['HALKBANK']).update_from_dict({'group': tb}).save()
+    await (await Pt['Fibabanka']).update_from_dict({'group': tb}).save()
+    await (await Pt['BAKAIBANK']).update_from_dict({'group': tb}).save()
+    await (await Pt['KuveytTurk']).update_from_dict({'group': tb}).save()
+    await (await Pt['Ziraat']).update_from_dict({'group': tb}).save()
+    await (await Pt['BanktransferTurkey']).update_from_dict({'group': tb}).save()
+    await (await Pt['BANK']).update_from_dict({'group': tb}).save()
+    await (await Pt['VakifBank']).update_from_dict({'group': tb}).save()
+    await (await Pt['Papara']).update_from_dict({'group': tb}).save()
+    await (await Pt['QNB']).update_from_dict({'group': tb}).save()
+    await (await Pt['ISBANK']).update_from_dict({'group': tb}).save()
+    await (await Pt['Garanti']).update_from_dict({'group': tb}).save()
+    await (await Pt['DenizBank']).update_from_dict({'group': tb}).save()
+    #
+    eb = 'EuroBanks'
+    await (await Pt['SEPA']).update_from_dict({'group': eb}).save()
+    await (await Pt['SEPAinstant']).update_from_dict({'group': eb}).save()
+    await (await Pt['ING']).update_from_dict({'group': eb}).save()
 
-    # eb, _ = await Pt.get_or_create(name='EuroBanks', parent=bc)
-    # await (await Pt['SEPA']).update_from_dict({'parent': eb}).save()
-    # await (await Pt['SEPAinstant']).update_from_dict({'parent': eb}).save()
-    # await (await Pt['ING']).update_from_dict({'parent': eb}).save()
-    # await (await Pt['Advcash']).update_from_dict({'parent': eb}).save()
-    # await (await Pt['CashDeposit']).update_from_dict({'parent': eb}).save()
+    # ub = 'UkrBanks'
+    # await (await Pt['RaiffeisenBankAval']).update_from_dict({'group': ub}).save()
 
 
 if __name__ == "__main__":

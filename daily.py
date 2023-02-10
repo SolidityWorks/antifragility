@@ -19,7 +19,7 @@ async def update():
 async def orders_fill():
     clients: [Client] = await Client.filter(status__gte=3).prefetch_related('users')
     for client in clients:
-        [await arch_orders(user) for user in client.users if not len(await user.orders.limit(1))]  # only for users with no orders
+        [await arch_orders(user) for user in client.users]  # if not len(await user.orders.limit(1))]  # only for users with no orders
 
 
 async def arch_orders(user: User, part: int = 0, page: int = 0):  # payment methods
