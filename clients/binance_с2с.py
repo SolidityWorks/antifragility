@@ -89,7 +89,7 @@ async def balance(user: User, spot0fond1: 0 | 1 = 1):  # payment methods
 async def get_ads(asset: str, cur: str, sell: int = 0, pts: [str] = None, rows: int = 20, page: int = 1):
     payload = {"page": page,
                "rows": rows,
-               # "payTypes": pts,
+               "payTypes": pts,
                "asset": asset,
                "tradeType": "SELL" if sell else "BUY",
                "fiat": cur,

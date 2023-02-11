@@ -41,7 +41,7 @@ async def cycle():
         pairs: [Pair] = [pair for pair in await users[0].ex.pairs if not (await pair.cur).blocked]
         while True:
             await tick(pairs)
-            await sleep(1)
+            # await sleep(1)
 
 asci_map = [u"\u2591", u"\u2592", u"\u2593", u"\u2588"]
 
@@ -57,7 +57,7 @@ async def tick(pairs: [Pair]):
         pts = [fiat for fiat in fd[pair.cur_id] if fiat[1] is None or fiat[1]*(int(pair.sell)*2-1) > 0]
         if not pair.sell:  # add in-group pts only for buy
             pt_groups = {pt[2] for pt in pts if pt[2]}
-            pts += [(pt.name, None, pt.group) for pt in await Pt.filter(group__in=pt_groups)]
+            pts += [(pt.name, None, pt.group) for pt in await Pt.filter(group__in=pt_groups).prefetch_related('ptcs') if not True in {ptc.blocked for ptc in pt.ptcs}]
         if (res := await get_ads(pair.coin_id, pair.cur_id, pair.sell, [pt[0] for pt in pts])).get('data'):  # if isSell else [pt.name for pt in pts])
             ad_mod = await ad_proc(res, pts)
             suc += 1

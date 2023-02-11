@@ -142,6 +142,7 @@ class Pt(Model):
     fiats: fields.ReverseRelation["Fiat"]
     orders: fields.ReverseRelation["Order"]
     children: fields.ReverseRelation["Pt"]
+    ptcs: fields.ReverseRelation["Ptc"]
 
 
 class Ptc(Model):

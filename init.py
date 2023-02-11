@@ -140,7 +140,7 @@ async def ptg():
     await (await Pt['KuveytTurk']).update_from_dict({'group': tb}).save()
     await (await Pt['Ziraat']).update_from_dict({'group': tb}).save()
     await (await Pt['BanktransferTurkey']).update_from_dict({'group': tb}).save()
-    await (await Pt['BANK']).update_from_dict({'group': tb}).save()
+    # await (await Pt['BANK']).update_from_dict({'group': tb}).save() multiple currencies
     await (await Pt['VakifBank']).update_from_dict({'group': tb}).save()
     await (await Pt['Papara']).update_from_dict({'group': tb}).save()
     await (await Pt['QNB']).update_from_dict({'group': tb}).save()
