@@ -17,6 +17,7 @@ host = 'https://api.binance.com/'
 ws_host = 'wss://stream.binance.com:9443'
 
 c2c_hist = 'sapi/v1/c2c/orderMatch/listUserOrderHistory'
+ex_data = 'sapi/v1/convert/exchangeInfo'
 
 
 async def get_pub(path: str, params: {} = None):
@@ -45,7 +46,7 @@ async def get_prv(path: str, cln: {}, params: {} = None):
 
 async def prices(*tickers: str):
     symbols = '["' + '","'.join(tickers) + '"]'
-    resp = await get_pub('api/v3/ticker/price', {'symbols': symbols})
+    resp = await get_pub('api/v3/ticker/price', {'symbols': symbols} if tickers else None)
     return {r['symbol']: float(r['price']) for r in resp}
 
 
@@ -74,6 +75,6 @@ async def c2c_hst(user: {}, tt: str):
 
 
 if __name__ == "__main__":
-    # res = run(prices('USDTRUB', 'BUSDRUB', 'BTCRUB', 'ETHRUB'))
-    res = run(c2c_hst(client, 'BUY'))
+    res = run(prices())
+    # res = run(c2c_hst(client, 'BUY'))
     print(res)

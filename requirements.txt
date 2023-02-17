@@ -1,4 +1,6 @@
 aiohttp
 aiohttp_sse
+# networkx[default]
 tortoise-orm[asyncpg]
 pyjwt[crypto]
+pyvis

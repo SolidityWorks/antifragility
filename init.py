@@ -20,40 +20,57 @@ CREATE TRIGGER price_upd AFTER UPDATE OR INSERT ON ad
     FOR EACH ROW EXECUTE PROCEDURE price_upd();
     ''')
 
-    await Coin.bulk_create(Coin(id=c) for c in [
-        "USDT",
-        "BTC",
-        "ETH",
-        "BNB",
-        "BUSD",
-        "RUB",
-        "ADA",
-        "TRX",
-        "SHIB",
-        "MATIC",
-        "XRP",
-        "SOL",
-        "WRX",
-        "DAI",
-        "DOGE",
-        "DOT",
-        "CAKE",
-        "ICP",
-    ])
-    await Cur.bulk_create(Cur(id=c) for c in [
-        "RUB",
-        "USD",
-        "EUR",
-        "TRY",
-        "THB",
-        # "AED",
-        # "KZT",
-        # "UZS",
-        # "UAH",
-    ])
-    await Ex.create(name="bc2c", type=ExType.p2p)
+    await Coin.bulk_create(Coin(id=c, quotable=q) for c, q in {
+        "USDT": True,
+        "BTC": True,
+        "ETH": True,
+        "BNB": True,
+        "BUSD": True,
+        "RUB": True,
+        "ADA": False,
+        "SHIB": False,
+        "MATIC": False,
+        "XRP": False,
+        "SOL": False,
+        "DOT": False,
+        "ICP": False,
+
+        # "EUR": False,
+        # "TRY": False,
+
+        # # No p2p but /RUB
+        # "ICP": False,
+        # "LTC": False,
+        # "WAVES": False,
+        # "NEAR": False,
+        # "ALGO": False,
+        # "FTM": False,
+        # "NEO": False,
+        # "ALGO": False,
+        # "ARPA": False,
+        # "TRU": False,
+        # "NU": False,
+        # # No /RUB but p2p
+        # "DOGE": False,
+        # "DAI": False,
+        # "TRX": False,
+        # "GMT": False,
+        # "WRX": False,
+    }.items())
+    await Cur.bulk_create(Cur(id=c, blocked=b) for c, b in {
+        "RUB": False,
+        "USD": True,
+        "EUR": True,
+        "TRY": True,
+        "THB": False,
+        # "AED": False,
+        # "KZT": False,
+        # "UZS": False,
+        # "UAH": False,
+    }.items())
+    await Ex.create(name="bn", type=ExType.main)
     # actual payment types seeding
-    await seed_pts(1, 3)  # lo-o-ong time
+    await seed_pts(1, 2)  # lo-o-ong time
     await pt_ranking()
     await ptg()
 
@@ -105,11 +122,10 @@ async def ptg():
     await (await Pt['RussianStandardBank']).update_from_dict({'group': rb}).save()
     await (await Pt['BCSBank']).update_from_dict({'group': rb}).save()
     await (await Pt['BankSaintPetersburg']).update_from_dict({'group': rb}).save()
-    await (await Pt['CitibankRussia']).update_from_dict({'group': rb}).save()
-    await (await Pt['CreditEuropeBank']).update_from_dict({'group': rb}).save()
-    await (await Pt['RenaissanceCredit']).update_from_dict({'group': rb}).save()
-    ab, _ = await Pt.get_or_create(name='ABank')  # alfa analog
-    await ab.update_from_dict({'group': rb}).save()
+    await (await Pt.get_or_create(name='CitibankRussia'))[0].update_from_dict({'group': rb}).save()
+    await (await Pt.get_or_create(name='CreditEuropeBank'))[0].update_from_dict({'group': rb}).save()
+    await (await Pt.get_or_create(name='RenaissanceCredit'))[0].update_from_dict({'group': rb}).save()
+    await (await Pt.get_or_create(name='ABank'))[0].update_from_dict({'group': rb}).save()  # alfa analog
     b, _ = await Pt.get_or_create(name='BANK')  # BankTransfer (only for THB)
     bp, _ = await Ptc.get_or_create(pt=b, cur_id='RUB')
     bp.blocked = True
@@ -127,7 +143,9 @@ async def ptg():
     alf = await Pt.create(name='AlfaBank', rank=-5, group=rb)
     await Ptc.create(pt=alf, blocked=True, cur_id='RUB')
     await Ptc.create(pt_id='CashDeposit', blocked=True, cur_id='RUB')
-    await Ptc.create(pt_id='ABank', cur_id='RUB')
+    cip, _ = await Pt.get_or_create(name='CashInPerson')
+    await (await Ptc.update_or_create(pt=cip, cur_id='RUB'))[0].update_from_dict({'blocked': True})
+    await Ptc.create(pt_id='ABank', blocked=True, cur_id='RUB')
     await Ptc.get_or_create(pt_id='KoronaPay', cur_id='TRY')  # hack for old orders
 
     tb = 'TurkBanks'

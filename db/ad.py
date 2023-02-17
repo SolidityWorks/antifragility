@@ -27,6 +27,8 @@ async def ad_proc(res: {}, pts: [(str,)] = None):
 
         # Ad
         idd = int(adv['advNo']) - 10 ** 19
+        if idd in (1370359766807228416, 1362718068234346496, 1364678005003771904, 1364654945693208576):
+            print(11)
         ad_upd = {'price': float(adv['price']), 'maxFiat': float(adv['dynamicMaxSingleTransAmount']), 'status': adv['advStatus'] or 0,
                   'minFiat': adv['minSingleTransAmount'], 'detail': adv['remarks'], 'autoMsg': adv['autoReplyMsg']}
         if adv['createTime']:
@@ -56,16 +58,17 @@ async def ad_proc(res: {}, pts: [(str,)] = None):
             ad: Ad = await Ad.create(id=idd, pair=pair, user=user, **ad_upd)
 
             # pts
-            if not pts:  # todo: DRY
-                for pt in pts_new:
-                    pto, cr = await Pt.get_or_create(name=pt)
-                    pts.add(pto)
-                    if cr:
-                        await pto.curs.add(await Cur[adv['fiatUnit']])
+            for pt in pts_new:  # todo remove DRY L#46
+                pto, cr = await Pt.get_or_create(name=pt)
+                pts.add(pto)
+                if cr:
+                    await pto.curs.add(await Cur[adv['fiatUnit']])
+
             await ad.pts.add(*pts)
             ad_mod += 3
 
         if ad_mod:
+            # mod_graph(ad)
             print(f"{pair.id}: {pair} [{pair.total}] {ad.price} * ({ad.minFiat}-{ad.maxFiat}) :", *pts_new)
         return ad_mod
     return 0

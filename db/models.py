@@ -51,10 +51,15 @@ class Cur(Model):
     blocked: bool = fields.BooleanField(default=False)
     pts: fields.ManyToManyRelation["Ptc"]
     ptcs: fields.ReverseRelation["Ptc"]
+    pairs: fields.ReverseRelation["Pair"]
 
 
 class Coin(Model):
     id: str = fields.CharField(7, pk=True)
+    rate: float = fields.FloatField(null=True)
+    quotable: bool = fields.BooleanField(default=False)
+
+    assets: fields.ReverseRelation["Asset"]
 
 
 class Ex(Model):
@@ -139,7 +144,6 @@ class Pt(Model):
 
     pairs: fields.ReverseRelation[Pair]
     curs: fields.ReverseRelation["Cur"]
-    fiats: fields.ReverseRelation["Fiat"]
     orders: fields.ReverseRelation["Order"]
     children: fields.ReverseRelation["Pt"]
     ptcs: fields.ReverseRelation["Ptc"]
@@ -149,6 +153,7 @@ class Ptc(Model):
     pt: fields.ForeignKeyNullableRelation[Pt] = fields.ForeignKeyField("models.Pt")
     cur: fields.ForeignKeyRelation[Cur] = fields.ForeignKeyField("models.Cur")
     blocked: fields.BooleanField = fields.BooleanField(default=False)
+    fiats: fields.ReverseRelation["Fiat"]
 
     class Meta:
         unique_together = (("pt", "cur"),)
@@ -157,7 +162,7 @@ class Ptc(Model):
 class Fiat(Model):
     id: int = fields.IntField(pk=True)
     ptc: fields.ForeignKeyRelation[Ptc] = fields.ForeignKeyField("models.Ptc")
-    pts: fields.ManyToManyRelation[Ptc] = fields.ManyToManyField("models.Pt", through="ptc")
+    pts: fields.ManyToManyRelation[Pt] = fields.ManyToManyField("models.Pt", through="ptc")
     region: fields.CharEnumField(Region) = fields.CharEnumField(Region, null=True)
     detail: str = fields.CharField(127)
     user: fields.ForeignKeyRelation[User] = fields.ForeignKeyField("models.User", "fiats")  # only user having client
