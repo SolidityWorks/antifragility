@@ -9,6 +9,7 @@ gap = 0.01
 HOST = 'https://c2c.binance.com/'
 ADS = 'bapi/c2c/v2/friendly/c2c/adv/search'
 AD = 'bapi/c2c/v2/public/c2c/adv/selected-adv/'
+AD_NEW = 'bapi/c2c/v3/private/c2c/adv/publish'
 AD_UPD = 'bapi/c2c/v3/private/c2c/adv/update'
 AD_UPD_ST = 'bapi/c2c/v2/private/c2c/adv/update-status'
 MY_ADS = 'bapi/c2c/v2/private/c2c/adv/list-by-page'
@@ -52,7 +53,8 @@ async def ping(user: User):
 #         users_db.update({'ran': False}, user['key'])
 
 
-async def get_my_pts(user: User):  # payment methods
+async def get_my_pts(user: User = None):  # payment methods
+    user = user or await User.get(nickName='Deals')
     res = await breq(PTS, user, {})
     return res['data']
 
@@ -103,7 +105,35 @@ async def get_ad(aid: str):
     return res.get('data')
 
 
-async def upd_ad():  # user, data: {}
+async def ad_new(coin: str, cur: str, sell: bool, price_type: int, price: float, amount: float):  # user
+    user = await User.get(nickName='Deals')
+    data = {"classify": "mass",
+            "autoReplyMsg": "Если не отвечаю дольше 5 минут, напишите пожалуйста сообщение, не всегда приходят уведомления о новых заявках",
+            "tradeType": "SELL" if sell else "BUY",
+            "onlineNow": True,
+            "fiatUnit": cur,
+            "asset": coin,
+            "initAmount": amount,  # todo take amount from found wallet
+            "maxSingleTransAmount": 50000,  # default
+            "minSingleTransAmount": 50,  # default
+            "payTimeLimit": 15 if sell else 60,
+            "priceType": price_type,
+            "priceFloatingRatio" if price_type-1 else "price": price,  # 1: stable, 2: float
+            "remarks": "Взаимный отзыв приветствуется:)",
+            "buyerKycLimit": 1,
+            "onlineDelayTime": 2,
+            "tradeMethods": [{"identifier": "BANK", "payId": 27973858, "payType": "BANK", "payAccount": "766-0-193538"}]
+            # "tradeMethods": [{"identifier": "YandexMoneyNew", "payId": 24956898},
+            #                  {"identifier": "TinkoffNew", "payId": 24956617},
+            #                  {"identifier": "RosBankNew", "payId": 24951855},
+            #                  {"identifier": "QIWI", "payId": 20023779, "payType": "QIWI", "payAccount": "79536515700"},
+            #                  {"identifier": "RUBfiatbalance", "payId": 16026051}]
+    }
+    res = await breq(AD_NEW, user, data)
+    return res.get('data', False)
+
+
+async def ad_upd():  # user, data: {}
     user = await User.get(nickName='Deals')
     data = {"asset": "RUB",
             "fiatUnit": "RUB",
@@ -123,7 +153,8 @@ async def upd_ad():  # user, data: {}
                 {"identifier": "RosBankNew"},
                 {"identifier": "TinkoffNew"},
                 {"identifier": "QIWI"},
-                {"identifier": "YandexMoneyNew"}],
+                {"identifier": "YandexMoneyNew"}
+            ],
             "tradeType": "BUY",
             "launchCountry": []  # "AE", "TR"
             }
@@ -131,7 +162,7 @@ async def upd_ad():  # user, data: {}
     return res.get('data')
 
 
-async def upd_ad_status(aid: int, pub: bool = True):  # user, data: {}
+async def ad_status_upd(aid: int, pub: bool = True):  # user, data: {}
     user = await User.get(nickName='Deals')
     data = {"advNos": [f"1{aid}"], "advStatus": int(pub)}
     res = await breq(AD_UPD_ST, user, data)
@@ -155,7 +186,8 @@ if __name__ == "__main__":
     try:
         from loader import cns
 
-        # run(upd_ad())
-        run(get_rates())
+        # pts = run(get_my_pts())
+        res = run(ad_new('DOGE', 'RUB', False, 2, 95.5, 1000))
+        print(res)
     except KeyboardInterrupt:
         print('Stopped.')
