@@ -3,9 +3,12 @@ import asyncio
 from tortoise import Tortoise
 from tortoise.backends.asyncpg import AsyncpgDBClient
 from tortoise.connection import connections
+from dotenv import load_dotenv
+from os import getenv as env
 
+load_dotenv()
 cns: [AsyncpgDBClient] = []
-dsn = "postgres://artemiev:@/af_"
+dsn = env('PG_DSN')
 
 
 async def getin():

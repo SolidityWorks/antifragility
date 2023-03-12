@@ -1,6 +1,7 @@
 aiohttp
 aiohttp_sse
-# networkx[default]
+# networkx[default] # in pyvis deps already
 tortoise-orm[asyncpg]
 pyjwt[crypto]
+python-dotenv
 pyvis
