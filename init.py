@@ -153,7 +153,7 @@ async def ptg():
     await (await Pt['alBaraka']).update_from_dict({'group': tb}).save()
     await (await Pt['SpecificBank']).update_from_dict({'group': tb}).save()
     await (await Pt['HALKBANK']).update_from_dict({'group': tb}).save()
-    await (await Pt['Fibabanka']).update_from_dict({'group': tb}).save()
+    await (await Pt.get_or_create(name='Fibabanka'))[0].update_from_dict({'group': tb}).save()
     await (await Pt['BAKAIBANK']).update_from_dict({'group': tb}).save()
     await (await Pt['KuveytTurk']).update_from_dict({'group': tb}).save()
     await (await Pt['Ziraat']).update_from_dict({'group': tb}).save()
@@ -165,7 +165,6 @@ async def ptg():
     await (await Pt['ISBANK']).update_from_dict({'group': tb}).save()
     await (await Pt['Garanti']).update_from_dict({'group': tb}).save()
     await (await Pt['DenizBank']).update_from_dict({'group': tb}).save()
-    await (await Pt.get_or_create(name='Fibabanka'))[0].update_from_dict({'group': tb}).save()
     #
     eb = 'EuroBanks'
     await (await Pt['SEPA']).update_from_dict({'group': eb}).save()
