@@ -165,6 +165,7 @@ async def ptg():
     await (await Pt['ISBANK']).update_from_dict({'group': tb}).save()
     await (await Pt['Garanti']).update_from_dict({'group': tb}).save()
     await (await Pt['DenizBank']).update_from_dict({'group': tb}).save()
+    await (await Pt.get_or_create(name='Fibabanka'))[0].update_from_dict({'group': tb}).save()
     #
     eb = 'EuroBanks'
     await (await Pt['SEPA']).update_from_dict({'group': eb}).save()
