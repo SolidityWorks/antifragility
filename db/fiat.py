@@ -56,7 +56,7 @@ async def upd_fiats():
             await Pt.bulk_create([Pt(name=diff) for diff in diffs])
         for pt in my_pts:
             dtl = pt['fields'][3 if pt['identifier'] == 'Advcash' else 1]['fieldValue']
-            ptc, _ = await Ptc.get_or_create(cur_id=fiat_cur_map[pt['id']], pt_id=pt['identifier'])
+            ptc, _ = await Ptc.get_or_create(pt_id=pt['identifier'])  # cur_id=fiat_cur_map[pt['id']],
             await Fiat.update_or_create({'user': user, 'ptc': ptc, 'detail': dtl}, id=pt['id'])
         await upd_fiat_rates()
 
