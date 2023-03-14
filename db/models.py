@@ -161,6 +161,7 @@ class Ptc(Model):
 
 class Fiat(Model):
     id: int = fields.IntField(pk=True)
+    cur: fields.ForeignKeyRelation[Cur] = fields.ForeignKeyField("models.Cur", null=True)
     ptc: fields.ForeignKeyRelation[Ptc] = fields.ForeignKeyField("models.Ptc")
     pts: fields.ManyToManyRelation[Pt] = fields.ManyToManyField("models.Pt", through="ptc")
     region: fields.CharEnumField(Region) = fields.CharEnumField(Region, null=True)
