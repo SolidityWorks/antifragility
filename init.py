@@ -57,17 +57,18 @@ CREATE TRIGGER price_upd AFTER UPDATE OR INSERT ON ad
         # "GMT": False,
         # "WRX": False,
     }.items())
-    await Cur.bulk_create(Cur(id=c, blocked=b) for c, b in {
-        "RUB": False,
-        "USD": True,
-        "EUR": True,
-        "TRY": True,
-        "THB": False,
-        # "AED": False,
-        # "KZT": False,
-        # "UZS": False,
-        # "UAH": False,
-    }.items())
+    await Cur.bulk_create(Cur(id=c[0], blocked=c[1], rate=c[2]) for c in [
+        ("RUB", False, 1),
+        ("USD", True, None),
+        ("EUR", True, None),
+        ("TRY", True, 1),
+        ("THB", False, None),
+        ("PHP", False, None),
+        # ("AED", False, None),
+        # ("KZT", False, None),
+        # ("UZS", False, None),
+        # ("UAH", False, None),
+    ])
     await Ex.create(name="bn", type=ExType.main)
     # actual payment types seeding
     await seed_pts(1, 2)  # lo-o-ong time

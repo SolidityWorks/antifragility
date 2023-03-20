@@ -1,9 +1,13 @@
+from clients.binance_async import prices
 from clients.binance_с2с import get_my_pts, balance, get_rates
 from db.models import Ptc, Fiat, Pt, Asset, Cur
 from db.user import get_bc2c_users
 
 fiat_cur_map: {} = {
     # 357058112 user
+    31986806: 'EUR',  #
+    31792810: 'RUB',
+    31422251: 'PHP',
     25842082: 'EUR',
     25812762: 'EUR',
     25416699: 'TRY',
@@ -55,16 +59,18 @@ async def upd_fiats():
         if diffs := set([pt['identifier'] for pt in my_pts]) - set(all_pts):
             await Pt.bulk_create([Pt(name=diff) for diff in diffs])
         for pt in my_pts:
-            dtl = pt['fields'][3 if pt['identifier'] == 'Advcash' else 1]['fieldValue']
-            ptc, _ = await Ptc.get_or_create(pt_id=pt['identifier'])  # cur_id=fiat_cur_map[pt['id']],
+            if not (cur_id := fiat_cur_map.get(pt['id'])):
+                cur_id = input(f'Choose cur for user {user.id}{user.nickName} pt {pt["id"]}:{pt["identifier"]}')
+            dtl = pt['fields'][3 if pt['identifier'] == 'Advcash' else (2 if pt['identifier'] == 'Gcash' else 1)]['fieldValue']
+            ptc, _ = await Ptc.get_or_create(pt_id=pt['identifier'], cur_id=cur_id)
             await Fiat.update_or_create({'user': user, 'ptc': ptc, 'detail': dtl}, id=pt['id'])
-        await upd_fiat_rates()
+        await upd_fiat_spot_rates()
 
 
-async def upd_fiat_rates():
-    r = await get_rates()
-    for cur in await Cur.all():
-        cur.rate = r[cur.id]
+async def upd_fiat_spot_rates():
+    for cur in await Cur.filter(rate__isnull=False).all():
+        rate = await prices(f'USDT{cur.id}')
+        cur.rate = rate[f'USDT{cur.id}']
         await cur.save()
 
 

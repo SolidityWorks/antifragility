@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from clients.binance_с2с import get_ad
 from db.models import Order, Ad, Fiat, Pair, Pt, Ptc, User
 
@@ -38,7 +40,8 @@ async def ordr(d: {}, user: User):  # class helps to create ad object from input
     aid: int = int(d['advNo']) - 10 ** 19
     sell: bool = d['tradeType'] == 'SELL'
     if not await Ad.exists(id=aid):
-        pair = await Pair.get(sell=sell, coin_id=d['asset'], cur_id=d['fiat'])
+        if not (pair := await Pair.get_or_none(sell=sell, coin_id=d['asset'], cur_id=d['fiat'])):
+            pass
         ap = {
             'id': aid,
             'pair': pair,
@@ -63,24 +66,31 @@ async def ordr(d: {}, user: User):  # class helps to create ad object from input
     pt: str = ptsd.get(d['selectedPayId'])
 
     if sell:  # I receive to this fiat
-        fiat: Fiat = await Fiat.get_or_none(id=d['selectedPayId']) if d['selectedPayId'] else None
+        fiat: Fiat | None = await Fiat.get_or_none(id=d['selectedPayId']) if d['selectedPayId'] else None
     else:
+        fiat = None
         if not (ptc := await Ptc.get_or_none(pt_id=pt, cur_id=d['fiat'])):  # I pay from this fiat. Search my fiat by pt
             if not len(ptsd):
                 print(ptsd)
             else:
                 if not (ptc := await Ptc.filter(pt_id__in=ptsd.values(), cur_id=d['fiat']).first()):
-                    print(ptsd)  # only for debug
-        if not (fiat := await Fiat.filter(ptc=ptc, user=user).first()):
+                    pto: Pt = await Pt[pt]
+                    if grp := pto.group:
+                        siblings_pt_ids = await Pt.filter(group=grp).values_list('name', flat=True)
+                        in_group_ptc_ids = await Ptc.filter(pt_id__in=siblings_pt_ids, cur_id=d['fiat']).values_list('id', flat=True)
+                        fiat = await Fiat.filter(ptc_id__in=in_group_ptc_ids, user=user).first()
+                    else:
+                        print(ptsd)  # only for debug
+        if not fiat and not (fiat := await Fiat.filter(ptc=ptc, user=user).first()):
             if not ptc:
                 print(pt)
             pto: Pt = await ptc.pt
             if grp := pto.group:
-                children = await Pt.filter(group=grp)
-                in_group_ptcs = [await Ptc.get_or_none(pt=c, cur_id=d['fiat']) for c in children]
-                if None in in_group_ptcs:
-                    in_group_ptcs = list(filter(lambda x: x, in_group_ptcs))
-                    print(grp)
+                siblings_pt_ids = await Pt.filter(group=grp).values_list('name', flat=True)
+                in_group_ptcs = await Ptc.filter(pt_id__in=siblings_pt_ids, cur_id=d['fiat']).all()
+                # if None in in_group_ptcs:
+                #     in_group_ptcs = list(filter(lambda x: x, in_group_ptcs))
+                #     print(grp)
                 fiat = await Fiat.filter(ptc_id__in=[pc.id for pc in in_group_ptcs], user=user).first()
             else:
                 print(pto)

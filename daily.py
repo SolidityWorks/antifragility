@@ -12,21 +12,20 @@ from db.order import orders_proc
 async def update():
     await Tortoise.generate_schemas()
     # actual
-    await upd_coin_rates()
+    await upd_coin_usdt_rates()
     await upd_fiats()
     await upd_founds()
     await orders_fill()
 
 
-async def upd_coin_rates():
-    coins = await Coin.all()
+async def upd_coin_usdt_rates():
+    coins = await Coin.filter(id__not='RUB').all()
     quote = 'RUB'
-    coin_tickers = (coin.id + quote for coin in coins if coin.id != quote)
+    coin_tickers = (coin.id + quote for coin in coins)
     rates = await prices(*coin_tickers)
     for coin in coins:
         coin.rate = rates.get(coin.id + quote, 1)
     await Coin.bulk_update(coins, ['rate'], len(coins))
-
 
 
 async def orders_fill():

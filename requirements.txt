@@ -4,4 +4,4 @@ aiohttp_sse
 tortoise-orm[asyncpg]
 pyjwt[crypto]
 python-dotenv
-pyvis
+pyvis==0.3.1
