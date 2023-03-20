@@ -31,22 +31,24 @@ async def graph():
         for cn in cur_nodes.values():
             cn['got'][pair.id] = cn['got'].get(pair.id, False)
         for ad in await pair.ads.order_by('-updated_at').limit(10).prefetch_related('pts').all():
-            for place in {pt.group or pt.name for pt in ad.pts}:  # todo if place is group - make amount is sum of all children
+            ad_pts = {pt.group or pt.name for pt in ad.pts}
+            my_pts = {f.ptc.pt_id for f in fiats if f.ptc.cur_id == pair.cur_id}
+            for place in ad_pts & my_pts:  # todo if place is group - make amount is sum of all children
                 node = pair.coin_id + '_' + pair.ex.name, pair.cur_id + '_' + place
                 if not cur_nodes[node[1]]['got'].get(pair.id):
                     group = pair.ex.name, pair.cur_id
                     cur_amt = sum(f.amount for f in await Fiat.filter(ptc__pt__group=place).all()) if place in groups else (await Fiat.get(ptc__pt_id=place, ptc_id__in=(ptc.id for ptc in pair.cur.ptcs))).amount  # TODO add user filtering
                     coin_amt = sum(a.free+a.freeze for a in pair.coin.assets)
                     amounts = coin_amt, cur_amt
-                    normalize_amounts = coin_amt*pair.coin.rate/rubusd_rate/10, cur_amt/pair.cur.rate/10
+                    # normalize_amounts = coin_amt*pair.coin.rate/rubusd_rate/10, cur_amt/pair.cur.rate/10
                     n0 = node[int(not pair.sell)]
-                    nxg.add_node(n0, group=group[int(not pair.sell)], size=normalize_amounts[int(not pair.sell)], title=f'', label=f'{amounts[int(not pair.sell)]:.6}\n{n0}')
+                    nxg.add_node(n0, group=group[int(not pair.sell)], title=f'', label=f'{float(amounts[int(not pair.sell)]):.6}\n{n0}')  # , size=normalize_amounts[int(not pair.sell)]
                     n1 = node[int(pair.sell)]
-                    nxg.add_node(n1, group=group[int(pair.sell)], size=normalize_amounts[int(pair.sell)], title=f'', label=f'{amounts[int(pair.sell)]:.6}\n{n1}')
+                    nxg.add_node(n1, group=group[int(pair.sell)], title=f'', label=f'{float(amounts[int(pair.sell)]):.6}\n{n1}')  # , size=normalize_amounts[int(pair.sell)]
 
-                    rr = 100*pair.coin.rate/rubusd_rate, 100*ad.price/pair.cur.rate
-                    mod = (int(pair.sell)*2-1) * (rr[1] - rr[0])
-                    nxg.add_edge(n0, n1, value=mod, title=ad.price)
+                    # rr = 100*pair.coin.rate/rubusd_rate, 100*ad.price/pair.cur.rate
+                    # mod = (int(pair.sell)*2-1) * (rr[1] - rr[0])
+                    nxg.add_edge(n0, n1, label=str(ad.price))  # , value=mod
 
                     cur_nodes[node[1]]['got'][pair.id] = True  # we need filling all PTs
 
@@ -55,6 +57,7 @@ async def graph():
 
     net = Network(directed=True, height="1000")
     net.repulsion(200, 0, 200, 0.02, 0.1)
+    net.set_template('./tmpl.html')
     # populates the nodes and edges data structures
     net.from_nx(nxg)
     net.show('nx.html')

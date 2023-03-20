@@ -1,0 +1,64 @@
+<html>
+
+<head>
+	<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/vis/4.16.1/vis.css" type="text/css" />
+   		<script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/vis/4.16.1/vis-network.min.js"> </script>
+		<style>
+		        #mynetwork {
+		            width: {{width}};
+		            height: {{height}};
+		            border: 1px solid lightgray;
+		        }
+		</style>
+</head>
+
+<body>
+<div id="mynetwork"></div>
+
+<input type="button" onclick="addNextData()" value="add node dynamically">
+
+<br />
+
+<script type="text/javascript">
+	var row_index = 0;
+
+	function addNextData() {
+		row_index++;
+		console.log(row_index);
+		updateEdges(row_index);
+	}
+
+    var edges;
+    var network;
+    var container;
+    var options, data;
+    var edge_ids;
+
+    function drawGraph() {
+        var container = document.getElementById('mynetwork');
+        var nodes = {{nodes|safe}};
+        edges = {{edges|safe}};
+        var e_values = [];
+        data = {nodes: nodes, edges: edges};
+        options = {{options|safe}};
+
+        network = new vis.Network(container, data, options);
+        return network;
+    }
+
+    function updateEdges(vol) {
+        for (var i = 0; i < edges.length; i=i+2) {
+            edges[i]["width"] += vol;
+            edges[i]["label"] = String(parseFloat(edges[i]["label"])*2);
+        }
+
+        data.edges = edges;
+        console.log(data);
+        network.setData(data);
+    }
+
+    new_network = drawGraph();
+</script>
+
+</body>
+</html>
