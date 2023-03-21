@@ -1,53 +1,47 @@
-<html>
-
+<html lang="en">
 <head>
 	<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/vis/4.16.1/vis.css" type="text/css" />
-   		<script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/vis/4.16.1/vis-network.min.js"> </script>
-		<style>
-		        #mynetwork {
-		            width: {{width}};
-		            height: {{height}};
-		            border: 1px solid lightgray;
-		        }
-		</style>
+	<script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/vis/4.16.1/vis-network.min.js"></script>
+	<style>
+		#network {
+			width: {{width}};
+			height: {{height}};
+			border: 1px solid lightgray;
+		}
+	</style>
+	<title>Rates graph</title>
 </head>
 
 <body>
-<div id="mynetwork"></div>
+<div id="network"></div>
 
-<input type="button" onclick="addNextData()" value="add node dynamically">
+<input type="button" id="online-toggle" onclick="updateToggle()" value="Get updates">
 
 <br />
 
 <script type="text/javascript">
-	var row_index = 0;
+    let network, nodes = [], edges = [], data = {}, options = {}, online = false
+	const btnTxt = {false: 'Get', true: 'Stop'}
+	const updBtn = document.getElementById('online-toggle')
 
-	function addNextData() {
-		row_index++;
-		console.log(row_index);
-		updateEdges(row_index);
+    function updateToggle() {
+        online = !online
+		updBtn.value = `${btnTxt[online]} updates`
 	}
 
-    var edges;
-    var network;
-    var container;
-    var options, data;
-    var edge_ids;
-
     function drawGraph() {
-        var container = document.getElementById('mynetwork');
-        var nodes = {{nodes|safe}};
-        edges = {{edges|safe}};
-        var e_values = [];
-        data = {nodes: nodes, edges: edges};
-        options = {{options|safe}};
+		const container = document.getElementById('network')
+		nodes = {{ nodes | safe }}
+		edges = {{ edges | safe }}
+		data = {nodes: nodes, edges: edges}
+		options = {{ options | safe }}
 
         network = new vis.Network(container, data, options);
         return network;
     }
 
     function updateEdges(vol) {
-        for (var i = 0; i < edges.length; i=i+2) {
+        for (let i = 0; i < edges.length; i=i+2) {
             edges[i]["width"] += vol;
             edges[i]["label"] = String(parseFloat(edges[i]["label"])*2);
         }
