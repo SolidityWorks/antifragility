@@ -69,7 +69,8 @@ CREATE TRIGGER price_upd AFTER UPDATE OR INSERT ON ad
         # ("UZS", False, None),
         # ("UAH", False, None),
     ])
-    await Ex.create(name="bn", type=ExType.main)
+    await Ex.create(name="BinanceP2P", type=ExType.p2p)
+    await Ex.create(name="BinanceSpot", type=ExType.main)
     # actual payment types seeding
     await seed_pts(1, 2)  # lo-o-ong time
     await pt_ranking()
@@ -147,7 +148,8 @@ async def ptg():
     cip, _ = await Pt.get_or_create(name='CashInPerson')
     await (await Ptc.update_or_create(pt=cip, cur_id='RUB'))[0].update_from_dict({'blocked': True})
     await Ptc.create(pt_id='ABank', blocked=True, cur_id='RUB')
-    await Ptc.get_or_create(pt_id='KoronaPay', cur_id='TRY')  # hack for old orders
+    kp, _ = await Pt.get_or_create(name='KoronaPay')
+    await Ptc.get_or_create(pt=kp, cur_id='TRY')  # hack for old orders
 
     tb = 'TurkBanks'
     await (await Pt['Akbank']).update_from_dict({'group': tb}).save()

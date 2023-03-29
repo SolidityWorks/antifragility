@@ -1,7 +1,7 @@
 from asyncio import run
 
 from clients.binance_с2с import get_my_ads
-from db.models import Ad, Pair, Pt, User, Cur
+from db.models import Ad, Pair, Pt, User, Cur, Edge
 from db.user import get_bc2c_users
 
 
@@ -68,10 +68,22 @@ async def ad_proc(res: {}, pts: [(str,)] = None):
             ad_mod += 3
 
         if ad_mod:
-            # mod_graph(ad)
             print(f"{pair.id}: {pair} [{pair.total}] {ad.price} * ({ad.minFiat}-{ad.maxFiat}) :", *pts_new)
+            await mod_graph(ad)
+
         return ad_mod
     return 0
+
+
+async def mod_graph(ad: Ad):
+    pair = ad.pair if type(ad.pair) is Pair else await ad.pair
+    for adpt in await ad.adpts:
+        ind0 = int(not pair.sell)
+        ind1 = int(pair.sell)
+        n = ['', '', adpt.pt_id]
+        n[ind0] = pair.coin_id
+        n[ind1] = pair.cur_id
+        edge, _ = await Edge.update_or_create({'adPt_id': adpt.id}, id='_'.join(n))
 
 
 async def my_ads_actualize():

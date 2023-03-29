@@ -9,6 +9,7 @@ gap = 0.01
 HOST = 'https://c2c.binance.com/'
 ADS = 'bapi/c2c/v2/friendly/c2c/adv/search'
 AD = 'bapi/c2c/v2/public/c2c/adv/selected-adv/'
+FIAT_NEW = 'bapi/c2c/v2/private/c2c/pay-method/add'
 AD_NEW = 'bapi/c2c/v3/private/c2c/adv/publish'
 AD_UPD = 'bapi/c2c/v3/private/c2c/adv/update'
 AD_UPD_ST = 'bapi/c2c/v2/private/c2c/adv/update-status'
@@ -38,6 +39,8 @@ async def breq(path: str, user: User = None, data=None, is_post=True):
         async with reqf(('' if path.startswith('https://') else HOST) + path, headers=headers, json=data) as response:
             # if response.status == 401:
             #     await hc(user)
+            if response.status != 200:
+                print(response)
             return (await response.json()) or response.status
 
 
@@ -103,6 +106,26 @@ async def get_ads(asset: str, cur: str, sell: int = 0, pts: [str] = None, rows: 
 async def get_ad(aid: str):
     res = await breq(AD + aid, is_post=False)
     return res.get('data')
+
+
+async def ad_fiat(coin: str, cur: str, sell: bool, price_type: int, price: float, amount: float):  # user
+    user = await User.get(nickName='Deals')
+    data = {"fields": [{"fieldId": "0000000000000000010", "fieldValue": "SHAINA CABANDO ABEJAR"},
+                       {"fieldId": "0000000000000000021", "fieldValue": "Meet in Cebu City"}],
+            "identifier": "CashInPerson",
+            "payStatus": "ACTIVE",
+            "googleVerifyCode": "465802"
+            }
+    data = {"fields": [{"fieldId": "30129764664654118912", "fieldValue": "SHAINA CABANDO ABEJAR"},  # real name
+                       {"fieldId": "30129764812512600064", "fieldValue": ""},  # nick in advcash
+                       {"fieldId": "30129764931661045760", "fieldValue": "mixartemev@gmail.com"},  # advcash email
+                       {"fieldId": "30129765053537591296", "fieldValue": "L 1808 3788 4260"}],  # wallet ID
+            "identifier": "Advcash",
+            "payStatus": "ACTIVE",
+            "googleVerifyCode": "836384"
+            }
+    res = await breq(FIAT_NEW, user, data)
+    return res.get('data', False)
 
 
 async def ad_new(coin: str, cur: str, sell: bool, price_type: int, price: float, amount: float):  # user

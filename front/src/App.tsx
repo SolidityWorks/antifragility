@@ -1,9 +1,19 @@
 import {useEffect, useState, } from 'react'
 import './App.css'
 import 'chartjs-adapter-date-fns'
-import {Chart as ChartJS, Legend, LinearScale, LogarithmicScale, LineElement, PointElement, TimeScale, Title, Tooltip} from 'chart.js'
+import {
+    Chart as ChartJS,
+    Legend,
+    LinearScale,
+    LogarithmicScale,
+    LineElement,
+    PointElement,
+    TimeScale,
+    Title,
+    Tooltip,
+} from 'chart.js'
 import {Scatter} from "react-chartjs-2";
-import {useSearchParams} from "react-router-dom";
+// import {useSearchParams} from "react-router-dom";
 
 ChartJS.register(
     LinearScale,
@@ -13,7 +23,6 @@ ChartJS.register(
     Title,
     Tooltip,
     Legend,
-    // TimeSeriesScale,
     TimeScale
 )
 
@@ -21,7 +30,6 @@ const options = {
     showLine: true,
     scales: {
         x: {
-            // type: 'timeseries' as const,
             type: 'time' as const,
         },
         y: {
@@ -30,7 +38,7 @@ const options = {
     },
 }
 
-const evtSource = new EventSource("http://127.0.0.1:8000/ssf/USDT,BUSD,BNB/all")
+const evtSource = new EventSource("http://127.0.0.1:8008/ssf/USDT,BUSD/RUB")
 
 evtSource.onopen = (/*e*/) => console.log("Connected."/*, e*/)
 
@@ -131,7 +139,7 @@ Object.entries(pairs).map((v, k) => {
 });
 
 const fresh = (pArr: any) => {
-    if (pArr.length > 1 && pArr[0].x < Date.now()-60*60*1000) {
+    if (pArr.length > 1 && pArr[0].x < Date.now()-15*60*1000) {
         pArr.shift();
         fresh(pArr)
     }
@@ -139,7 +147,7 @@ const fresh = (pArr: any) => {
 
 export function App() {
     const [points, setPoints] = useState(ip)
-    let [searchParams, setSearchParams] = useSearchParams();
+    // let [searchParams, setSearchParams] = useSearchParams();
 
     const dsets: any = {'datasets': []}
 

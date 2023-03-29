@@ -29,14 +29,15 @@ async def sse(request: Request):
     async def watchdog(cn: Connection, pid: int, channel: str, payload: str):
         ad = json.loads(payload)
         if ad['pair_id'] in prs:
-            data.get(ad['pair_id'], []).append({"x": int(ad['updated_at'].timestamp()*1000), "y": ad['price']})
+            data.get(ad['pair_id'], []).append({"x": ad['updated_at'], "y": ad['price']})
+            # data.get(ad['pair_id'], []).append({"x": int(ad['updated_at'].timestamp()*1000), "y": ad['price']})
 
     conn: Connection = await connect(dsn)
     await conn.add_listener('pc', watchdog)
 
     async with sse_response(request, headers={'Access-Control-Allow-Origin': '*'}) as resp:
         while resp.status == 200:
-            [await resp.send(json.dumps({pid: ads.pop()})) for pid, ads in data.items() if ads]
+            [await resp.send(json.dumps({pid: ads.pop(0)})) for pid, ads in data.items() if ads]
             await sleep(1)
 
 

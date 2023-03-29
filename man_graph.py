@@ -4,7 +4,7 @@ from __future__ import annotations
 
 class AdjacencyEdge:
     #  Vertices node key
-    def __init__(self, idd: int, weight: int | float):
+    def __init__(self, idd: int, weight: float):
         #  Set value of node key
         self.id: int = idd
         self.weight: float = weight
@@ -19,7 +19,7 @@ class Vertex:
 
 
 class Graph:
-    def __init__(self, size: int):  # Number of Vertices
+    def __init__(self, size: [int, int, float]):  # Number of Vertices
         if size:
             # Set initial nodes values
             self.nodes: [Vertex] = [Vertex(index) for index in range(size)]
@@ -28,7 +28,7 @@ class Graph:
             raise Exception("Empty Graph")
 
     #   Handling the request of adding new edge
-    def add_edge(self, start: int, last: int, weight: int | float):
+    def add_edge(self, start: int, last: int, weight: float):
         if 0 <= start < self.size and 0 <= last < self.size:
             edge = AdjacencyEdge(last, weight)
             if self.nodes[start].next is None:
@@ -57,7 +57,7 @@ class Graph:
 
             index += 1
 
-    def find_cycle(self, visit: [bool], start: int, source: int, summ: int | float, path: str):
+    def find_cycle(self, visit: [bool], start: int, source: int, summ: float, path: str):
         if visit[start]:
             if start == source and summ < 0:
                 print("Path (", path, " ) = ", summ)

@@ -84,7 +84,6 @@ class Pair(Model):
         unique_together = (("coin", "cur", "sell", "ex"),)
 
     def __str__(self):
-        # noinspection PyUnresolvedReferences
         return f"{self.coin_id}/{self.cur_id} {'SELL' if self.sell else 'BUY'}"
 
 
@@ -123,7 +122,7 @@ class Ad(Model):
     id: int = fields.BigIntField(pk=True)
     pair: fields.ForeignKeyRelation[Pair] = fields.ForeignKeyField("models.Pair")
     price: float = fields.FloatField()
-    pts: fields.ManyToManyRelation["Pt"] = fields.ManyToManyField("models.Pt")  # only root pts
+    pts: fields.ManyToManyRelation["Pt"] = fields.ManyToManyField("models.Pt", through="adpt")  # only root pts
     maxFiat: float = fields.FloatField()
     minFiat: float = fields.FloatField()
     detail: str = fields.CharField(4095, null=True)
@@ -149,8 +148,22 @@ class Pt(Model):
     ptcs: fields.ReverseRelation["Ptc"]
 
 
+class AdPt(Model):
+    ad: fields.ForeignKeyRelation[Ad] = fields.ForeignKeyField("models.Ad")
+    pt: fields.ForeignKeyRelation[Pt] = fields.ForeignKeyField("models.Pt")
+    edge: fields.BackwardOneToOneRelation["Edge"]
+
+    class Meta:
+        unique_together = (("ad", "pt"),)
+
+
+class Edge(Model):
+    id: str = fields.CharField(63, pk=True)
+    adPt: fields.OneToOneRelation[AdPt] = fields.OneToOneField("models.AdPt", related_name="edge")
+
+
 class Ptc(Model):
-    pt: fields.ForeignKeyNullableRelation[Pt] = fields.ForeignKeyField("models.Pt")
+    pt: fields.ForeignKeyRelation[Pt] = fields.ForeignKeyField("models.Pt")  # Nullable
     cur: fields.ForeignKeyRelation[Cur] = fields.ForeignKeyField("models.Cur")
     blocked: fields.BooleanField = fields.BooleanField(default=False)
     fiats: fields.ReverseRelation["Fiat"]
@@ -170,6 +183,9 @@ class Fiat(Model):
     target: float = fields.FloatField(default=None, null=True)
 
     orders: fields.ReverseRelation["Order"]
+
+    def __str__(self):
+        return f"{self.id}: {self.ptc.pt_id} ({self.user.nickName})"
 
 
 class Route(Model):

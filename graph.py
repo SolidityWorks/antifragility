@@ -1,12 +1,13 @@
 from __future__ import annotations
 from asyncio import run
+from itertools import groupby
 from math import log
 
 import networkx as nx
 from networkx import NetworkXError
 from pyvis.network import Network
 
-from db.models import Pair, Cur, Ptc, Fiat, Asset, Pt, AdvStatus
+from db.models import Pair, Cur, Ptc, Fiat, Asset, Pt, AdvStatus, Edge
 
 # nodes
 spot_quotable_coins = ['USDT', 'BTC', 'BUSD', 'BNB', 'ETH', 'USDC', 'TRY', 'EUR', 'RUB']
@@ -14,8 +15,12 @@ spot_quotable_coins = ['USDT', 'BTC', 'BUSD', 'BNB', 'ETH', 'USDC', 'TRY', 'EUR'
 
 async def graph():
     # rubusd_rate = (await Cur['RUB']).rate
-    groups = await Pt.filter(group__isnull=None).distinct().values_list('group', flat=True)
+    groups = await Pt.filter(group__isnull=None, rank__gte=0).order_by('group', '-rank')
+    groups = {k: list(g) for k, g in groupby(groups, lambda x: x.group)}
+    edges = await Edge.filter(adPt__pt__group__isnull=True).prefetch_related('adPt__ad', 'adPt__pt').all()
+    g_edges = await Edge.filter(adPt__pt__group__isnull=False).all()
     fiats: [Fiat] = await Fiat.filter(ptc__blocked=False, ptc__cur__blocked=False).prefetch_related('ptc__pt')
+    ptcs: [Ptc] = await Ptc.filter(blocked=False, cur__blocked=False).prefetch_related('pt')
     cur_nodes: {str: (float, float)} = {f'{fiat.ptc.cur_id}_{fiat.ptc.pt.group or fiat.ptc.pt_id}': {
         'amount': fiat.amount,
         'target': fiat.target,
