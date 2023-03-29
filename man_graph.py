@@ -20,8 +20,9 @@ class Vertex:
 
 class Graph:
     def __init__(self, edges: [str, str, float]):  # Number of Vertices
+        self.nodes: {str: Vertex} = {}
+        self.cycles: {(str,): float} = {}
         if len(edges):
-            self.nodes: {str: Vertex} = {}
             # Set initial nodes values
             for edge in edges:
                 if not self.nodes.get(edge[0]):
@@ -53,10 +54,10 @@ class Graph:
                 #  Visit to next edge
                 next_edge = next_edge.next
 
-    def find_cycle(self, visit: [bool], start: str, source: str, summ: float, path: str):
+    def find_cycle(self, visit: [bool], start: str, source: str, summ: float, cycle: (str,)):
         if visit[start]:
             if start == source and summ < 0:
-                print("Path (", path, " ) = ", summ)
+                self.cycles[cycle] = summ
             return
 
         #  Here modified  the value of visited node
@@ -64,7 +65,7 @@ class Graph:
         #  This is used to iterate nodes edges
         edge = self.nodes[start].next
         while edge is not None:
-            self.find_cycle(visit, edge.id, source, summ + edge.weight, path + " → " + str(edge.id))
+            self.find_cycle(visit, edge.id, source, summ + edge.weight, cycle+(edge.id,))
             #  Visit to next edge
             edge = edge.next
 
@@ -72,8 +73,6 @@ class Graph:
         visit[start] = False
 
     def negative_cycle(self):
-        print("\nResult :")
-
         for node_key in self.nodes:  # only keys
             # Auxiliary space which is used to store information about visited node
             # Set initial visited node status off
@@ -81,7 +80,9 @@ class Graph:
 
             #  Check cycle of node i to i
             #  Here initial cycle weight is zero
-            self.find_cycle(visit, node_key, node_key, 0, " " + str(node_key))
+            self.find_cycle(visit, node_key, node_key, 0, (node_key,))
+
+        return self.cycles
 
 
 def main():
@@ -96,7 +97,7 @@ def main():
     #  Print graph element
     g.print_graph()
     #  Test
-    g.negative_cycle()
+    print("\n", g.negative_cycle())
 
 
 if __name__ == "__main__":
