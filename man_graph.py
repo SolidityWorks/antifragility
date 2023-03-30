@@ -19,22 +19,15 @@ class Vertex:
 
 
 class Graph:
-    def __init__(self, edges: [str, str, float]):  # Number of Vertices
-        self.nodes: {str: Vertex} = {}
+    def __init__(self, nodes: [str, float, any, any], edges: [str, str, float, any]):  # Number of Vertices
         self.cycles: {(str,): float} = {}
-        if len(edges):
-            # Set initial nodes values
-            for edge in edges:
-                if not self.nodes.get(edge[0]):
-                    self.nodes[edge[0]] = Vertex(edge[0])
-                if not self.nodes.get(edge[1]):
-                    self.nodes[edge[1]] = Vertex(edge[1])
-                self.add_edge(*edge)
-        else:
-            raise Exception("Empty Graph")
+        # Set initial nodes values
+        self.nodes: {str: Vertex} = {node[0]: Vertex(node[0]) for node in nodes}
+        # Connect this nodes with edges
+        [self.add_edge(*edge) for edge in edges]
 
     #   Handling the request of adding new edge
-    def add_edge(self, start: str, last: str, weight: float):
+    def add_edge(self, start: str, last: str, weight: float, *attrs: None):
         edge = AdjacencyEdge(last, weight)
         if self.nodes[start].next:  # node already have outs
             self.nodes[start].last.next = edge  # Add edge at the end
@@ -86,14 +79,7 @@ class Graph:
 
 
 def main():
-    g = Graph([
-        ('zero', 'one', -1),
-        ('zero', 'two', -2),
-        ('zero', 'three', -5),
-        ('one', 'two', 1),
-        ('three', 'two', 1.5),
-        ('two', 'zero', 1.2),
-    ])
+    g = Graph([])
     #  Print graph element
     g.print_graph()
     #  Test
