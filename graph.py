@@ -20,19 +20,11 @@ async def graph():
     edges = await Edge.filter(adPt__pt__group__isnull=True).prefetch_related('adPt__ad', 'adPt__pt').all()
     g_edges = await Edge.filter(adPt__pt__group__isnull=False).all()
     fiats: [Fiat] = await Fiat.filter(ptc__blocked=False, ptc__cur__blocked=False).prefetch_related('ptc__pt')
-    ptcs: [Ptc] = await Ptc.filter(blocked=False, cur__blocked=False).prefetch_related('pt')
-    cur_nodes: {str: (float, float)} = {f'{fiat.ptc.cur_id}_{fiat.ptc.pt.group or fiat.ptc.pt_id}': {
-        'amount': fiat.amount,
-        'target': fiat.target,
-        'got': {}
-    } for fiat in fiats}
-    coin_nodes: {str: {str: float | bool}} = {a.coin_id: {
-        'amount': a.free + a.freeze,
-        'target': a.target,
-        'quotable': a.coin.quotable,
-    } for a in await Asset.all().prefetch_related('coin')}
+    # nodes (id, size, group, title)
+    cur_nodes: [(str, float)] = [(f'{fiat.ptc.cur_id}_{fiat.ptc.pt.group or fiat.ptc.pt_id}', fiat.amount) for fiat in fiats]
+    coin_nodes: [(str, float)] = [(a.coin_id, a.free + a.freeze) for a in await Asset.all().prefetch_related('coin')]
 
-    # edges
+    # edges (from, to, weight, title)
     nxg = nx.DiGraph()
     for pair in await Pair.filter(cur__blocked=False).prefetch_related('ex', 'cur__ptcs', 'coin__assets').all():
         for cn in cur_nodes.values():

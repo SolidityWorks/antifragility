@@ -2,7 +2,7 @@ import asyncio
 from math import ceil
 from tortoise import Tortoise
 
-from clients.binance_async import prices
+from clients.binance_async import spot_prices
 from clients.binance_с2с import get_arch_orders
 from db.fiat import upd_fiats, upd_founds
 from db.models import Client, User, Coin
@@ -23,7 +23,7 @@ async def upd_coin_usdt_rates(quote: str = 'RUB'):
     q_coin.rate = 1
     coins = await Coin.filter(id__not=quote).all()
     coin_tickers = (coin.id + quote for coin in coins)
-    rates = await prices(*coin_tickers)
+    rates = await spot_prices(*coin_tickers)
     for coin in coins:
         coin.rate = rates.get(coin.id + quote, 1)
     await Coin.bulk_update(coins+[q_coin], ['rate'])

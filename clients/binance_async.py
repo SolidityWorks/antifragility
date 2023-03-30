@@ -44,10 +44,10 @@ async def get_prv(path: str, cln: {}, params: {} = None):
         return await resp.json()
 
 
-async def prices(*tickers: str):
+async def spot_prices(*tickers: str):
     symbols = '["' + '","'.join(tickers) + '"]'
     resp = await get_pub('api/v3/ticker/price', {'symbols': symbols} if tickers else None)
-    return {r['symbol']: float(r['price']) for r in resp}
+    return {r['symbol']: float(r['price']) for r in resp} if type(resp) is list else {}
 
 
 async def c2c_hst(user: {}, tt: str):
@@ -75,6 +75,6 @@ async def c2c_hst(user: {}, tt: str):
 
 
 if __name__ == "__main__":
-    res = run(prices())
+    res = run(spot_prices())
     # res = run(c2c_hst(client, 'BUY'))
     print(res)

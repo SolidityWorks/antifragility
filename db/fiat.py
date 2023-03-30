@@ -1,5 +1,5 @@
-from clients.binance_async import prices
-from clients.binance_с2с import get_my_pts, balance, get_rates
+from clients.binance_async import spot_prices
+from clients.binance_с2с import get_my_pts, balance, get_rates, get_cur_rate
 from db.models import Ptc, Fiat, Pt, Asset, Cur
 from db.user import get_bc2c_users
 
@@ -68,9 +68,9 @@ async def upd_fiats():
 
 
 async def upd_fiat_spot_rates():
-    for cur in await Cur.filter(rate__isnull=False).all():
-        rate = await prices(f'USDT{cur.id}')
-        cur.rate = rate[f'USDT{cur.id}']
+    for cur in await Cur.all():
+        rate = await spot_prices(f'USDT{cur.id}')
+        cur.rate = rate.get(f'USDT{cur.id}', await get_cur_rate(cur.id))
         await cur.save()
 
 

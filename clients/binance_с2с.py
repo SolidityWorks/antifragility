@@ -19,6 +19,7 @@ ORD = 'bapi/c2c/v2/private/c2c/order-match/order-list'
 ORD_ARCH = 'bapi/c2c/v1/private/c2c/order-match/order-list-archived-involved'
 CUR_MIN_AMT = 'bapi/c2c/v1/private/c2c/sys-config/adv-trans-amount-limit'
 RATES = 'bapi/c2c/v1/private/c2c/merchant/get-exchange-rate-list'
+RATE = 'bapi/c2c/v2/public/c2c/adv/quoted-price'
 BLNC_URL = 'https://www.binance.com/bapi/asset/v2/private/asset-service/wallet/balance?needBalanceDetail=true'
 
 
@@ -203,6 +204,12 @@ async def get_rates():  # user, data: {}
     user = await User.get(nickName='Deals')
     res = await breq(RATES, user, is_post=False)
     return {rate['fiatCurrency']: float(rate['exchangeRate']) for rate in res.get('data')}
+
+
+async def get_cur_rate(cur_id: str):
+    user = await User.get(nickName='Deals')
+    res = await breq(RATE, user, {"assets": ["USDT"], "fiatCurrency": cur_id, "tradeType": "BUY", "fromUserRole": "USER"})
+    return res['data'][0]['referencePrice']
 
 
 if __name__ == "__main__":
