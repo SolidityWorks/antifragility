@@ -118,6 +118,11 @@ class Client(Model):
         return f"User {self.gmail}({self.status}) tg:{self.tg_id}"
 
 
+class Adpt(Model):
+    ad: fields.ForeignKeyRelation["Ad"] = fields.ForeignKeyField("models.Ad")
+    pt: fields.ForeignKeyRelation["Pt"] = fields.ForeignKeyField("models.Pt")
+
+
 class Ad(Model):
     id: int = fields.BigIntField(pk=True)
     pair: fields.ForeignKeyRelation[Pair] = fields.ForeignKeyField("models.Pair")
@@ -146,20 +151,6 @@ class Pt(Model):
     orders: fields.ReverseRelation["Order"]
     children: fields.ReverseRelation["Pt"]
     ptcs: fields.ReverseRelation["Ptc"]
-
-
-class AdPt(Model):
-    ad: fields.ForeignKeyRelation[Ad] = fields.ForeignKeyField("models.Ad")
-    pt: fields.ForeignKeyRelation[Pt] = fields.ForeignKeyField("models.Pt")
-    edge: fields.BackwardOneToOneRelation["Edge"]
-
-    class Meta:
-        unique_together = (("ad", "pt"),)
-
-
-class Edge(Model):
-    id: str = fields.CharField(63, pk=True)
-    adPt: fields.OneToOneRelation[AdPt] = fields.OneToOneField("models.AdPt", related_name="edge")
 
 
 class Ptc(Model):

@@ -1,6 +1,6 @@
 from asyncio import run
 
-from db.models import Fiat, Asset, Cur, Coin, Edge
+from db.models import Fiat, Asset, Cur, Coin, Adpt
 from graph.Graph import Graph
 from graph.Net import Net
 
@@ -23,14 +23,13 @@ async def graph():
     net.add_nodes(nodes)
     # edges (from, to, weight, title)
     edges = []
-    for edge in await Edge.all().prefetch_related('adPt__ad__pair__ex', 'adPt__ad__pts'):
-        ad = edge.adPt.ad
+    for edge in await Adpt.all().prefetch_related('ad__pair__ex', 'pt'):
+        ad = edge.ad
         pair = ad.pair
-        for place in ad.pts:
-            node = pair.coin_id + '_' + pair.ex.name, pair.cur_id + '_' + (place.group or place.name)
-            ind0 = int(not pair.sell)
-            ind1 = int(pair.sell)
-            edges.append((node[ind0], node[ind1], ad.price, '1'))
+        node = pair.coin_id + '_' + pair.ex.name, pair.cur_id + '_' + (edge.pt.group or edge.pt.name)
+        ind0 = int(not pair.sell)
+        ind1 = int(pair.sell)
+        edges.append((node[ind0], node[ind1], ad.price, edge.pt.name))
     net.add_edges(edges)
 
     g = Graph(nodes, edges)
