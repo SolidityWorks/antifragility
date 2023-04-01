@@ -22,7 +22,7 @@ class Graph:
 
     def find_cycle(self, visit: [bool], start: str, source: str, summ: float, cycle: (str,)):
         if visit[start]:
-            if start == source and summ > 1.01:
+            if start == source and summ > 1.001:
                 self.cycles[cycle] = summ
             return
 

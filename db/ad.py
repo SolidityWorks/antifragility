@@ -5,7 +5,7 @@ from db.models import Ad, Pair, Pt, User, Cur, Adpt
 from db.user import get_bc2c_users
 
 
-async def ad_proc(res: {}, pts: [(str,)] = None):
+async def ad_proc(res: {}, pts_in: [(str,)] = None):
 
     async def pts_save():
         for pt in pts_new:
@@ -15,6 +15,13 @@ async def ad_proc(res: {}, pts: [(str,)] = None):
                 await pto.curs.add(await Cur[adv['fiatUnit']])
         await ad.pts.add(*pts)
 
+    sell: bool = res['data'][0]['adv']['tradeType'] != 'SELL'
+    pts_need: {str: bool} = {pt[0] if sell else pt[2] or pt[0]: True for pt in pts_in}
+    if sell:
+        groups = {}
+    else:
+        groups: {str: str} = {pt[0]: pt[2] or pt[0] for pt in pts_in}
+
     for data in res['data']:
         adv = data['adv']
         pair_unq = {'coin_id': adv['asset'], 'cur_id': adv['fiatUnit'], 'sell': adv['tradeType'] != 'SELL', 'ex_id': 1}  # todo: unHardcode ex
@@ -23,11 +30,11 @@ async def ad_proc(res: {}, pts: [(str,)] = None):
         pair, is_new = await Pair.update_or_create(pair_upd, **pair_unq)
 
         # Pt
-        pts_new: {str} = set(pt['identifier'] for pt in adv['tradeMethods'])
-        if pts:  # pts filter for cycle update
-            if not (pts_new := pts_new & {pt[0] for pt in pts}):
-                print('WARNING! no payment types:', [pt['identifier'] for pt in adv['tradeMethods']])
-                continue
+        pts_new: {str} = set(pt['identifier'] for pt in adv['tradeMethods'] if pts_need.get(pt['identifier'], pts_need.get(groups.get(pt['identifier']))))
+        if not (pts_new := pts_new & {pt[0] for pt in pts_in}):
+            # print('WARNING! no payment types:', [pt['identifier'] for pt in adv['tradeMethods']])
+            continue
+
         pts: {Pt} = set()
 
         # Ad
@@ -78,21 +85,13 @@ async def ad_proc(res: {}, pts: [(str,)] = None):
 
         if ad_mod:
             print(f"{pair.id}: {pair} [{pair.total}] {ad.price} * ({ad.minFiat}-{ad.maxFiat}) :", *pts_new)
-            # await mod_graph(ad)
 
-        return ad_mod
+        for pt in pts_new:
+            pts_need[pt if sell else groups[pt]] = False
+        if True not in pts_need.values():
+            return ad_mod
+
     return 0
-
-
-# async def mod_graph(ad: Ad):
-#     pair = ad.pair if type(ad.pair) is Pair else await ad.pair
-#     for adpt in await ad.adpts:
-#         ind0 = int(not pair.sell)
-#         ind1 = int(pair.sell)
-#         n = ['', '', adpt.pt_id]
-#         n[ind0] = pair.coin_id
-#         n[ind1] = pair.cur_id
-#         edge, _ = await Edge.update_or_create({'adPt_id': adpt.id}, id='_'.join(n))
 
 
 async def my_ads_actualize():

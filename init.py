@@ -110,7 +110,7 @@ async def pt_ranking():
 
 
 async def ptg():
-    bnr = 'BinanceRUB'
+    bnr = 'BinanceP2P'
     await (await Pt['RUBfiatbalance']).update_from_dict({'group': bnr}).save()
     await (await Pt.get_or_create(name='BinanceGiftCardRUB'))[0].update_from_dict({'group': bnr}).save()
 
