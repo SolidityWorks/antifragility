@@ -58,7 +58,7 @@ async def tick(pairs: [Pair]):
         if not pair.sell:  # add in-group pts only for buy
             pt_groups = {pt[2] for pt in pts if pt[2]}
             pts += [(pt.name, None, pt.group) for pt in await Pt.filter(group__in=pt_groups).prefetch_related('ptcs') if not True in {ptc.blocked for ptc in pt.ptcs}]
-        if (res := await get_ads(pair.coin_id, pair.cur_id, pair.sell, [pt[0] for pt in pts])).get('data'):  # if isSell else [pt.name for pt in pts])
+        if (res := await get_ads(pair.coin_id, pair.cur_id, pair.sell, list(set(pt[0] for pt in pts)))).get('data'):  # if isSell else [pt.name for pt in pts])
             ad_mod = await ad_proc(res, pts)
             suc += 1
             # just process indicate:

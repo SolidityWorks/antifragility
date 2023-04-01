@@ -151,6 +151,8 @@ async def ptg():
     await Ptc.create(pt_id='CashDeposit', blocked=True, cur_id='RUB')
     cip, _ = await Pt.get_or_create(name='CashInPerson')
     await (await Ptc.update_or_create(pt=cip, cur_id='RUB'))[0].update_from_dict({'blocked': True})
+    sb, _ = await Pt.get_or_create(name='SpecificBank')
+    await (await Ptc.update_or_create(pt=sb, cur_id='RUB'))[0].update_from_dict({'blocked': True})
     await Ptc.create(pt_id='ABank', blocked=True, cur_id='RUB')
     kp, _ = await Pt.get_or_create(name='KoronaPay')
     await Ptc.get_or_create(pt=kp, cur_id='TRY')  # hack for old orders
