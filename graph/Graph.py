@@ -22,7 +22,7 @@ class Graph:
 
     def find_cycle(self, visit: [bool], start: str, source: str, summ: float, cycle: (str,)):
         if visit[start]:
-            if start == source and summ < 0:
+            if start == source and summ > 1.01:
                 self.cycles[cycle] = summ
             return
 
@@ -30,7 +30,7 @@ class Graph:
         visit[start] = True
         for out in self.nodes[start].outs:
             #  Visit to next edge
-            self.find_cycle(visit, out.to, source, summ + out.weight, cycle+(out.to,))
+            self.find_cycle(visit, out.to, source, summ * out.weight, cycle+(out.to,))
 
         #  Reset the value of visited node status
         visit[start] = False
@@ -40,7 +40,7 @@ class Graph:
             # Auxiliary array for store visiting node flags
             visit = {node_key: False for node_key in self.nodes}  # Set initial visited node status off
             # Check cycle from and to node "node_key" with initial zero weight
-            self.find_cycle(visit, node_key, node_key, 0, (node_key,))
+            self.find_cycle(visit, node_key, node_key, 1, (node_key,))
 
         return self.cycles
 

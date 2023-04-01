@@ -71,7 +71,7 @@ async def graph():
     net.set_template('./tmpl.html')
     # populates the nodes and edges data structures
     net.from_nx(nxg)
-    net.show('nx.html')
+    net.show('index.html')
     net.show_buttons()
 
 

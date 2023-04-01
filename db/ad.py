@@ -62,6 +62,8 @@ async def ad_proc(res: {}, pts: [(str,)] = None):
             # check for old edges
             if edges := await Adpt.filter(ad__pair_id=pair.id, pt_id__in=pts_new).prefetch_related('ad__pts'):
                 for edge in edges:
+                    # if pair.coin_id == 'ETH' and edge.pt_id == 'TinkoffNew':
+                    #     pass  # todo: remove the edge doubles
                     if len(edge.ad.pts) < 2:  # if this edge is only one in Ad,
                         ad_del = await edge.ad.delete()  # then delete whole Ad
                     else:
