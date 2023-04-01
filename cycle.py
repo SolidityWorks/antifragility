@@ -10,7 +10,7 @@ from db.user import get_bc2c_users
 sql = """
 (select fiat.id, amount, target, user_id, cur_id, pt_id, "group", amount - target as need, (amount - target) / rate as need_usd
  from fiat
-          inner join ptc p on p.id = fiat.ptc_id
+          inner join ptc p on p.id = fiat.ptc_id and NOT p.blocked
           inner join cur c on c.id = p.cur_id
           inner join pt p2 on p2.name = p.pt_id
  where target is not null
@@ -19,7 +19,7 @@ sql = """
 UNION ALL
 (select fiat.id, amount, target, user_id, cur_id, pt_id, "group", amount - target as need, (amount - target) / rate as need_usd
  from fiat
-          inner join ptc p on p.id = fiat.ptc_id
+          inner join ptc p on p.id = fiat.ptc_id and NOT p.blocked
           inner join cur c on c.id = p.cur_id
           inner join pt p2 on p2.name = p.pt_id
  where target is null
@@ -27,7 +27,7 @@ UNION ALL
 UNION ALL
 (select fiat.id, amount, target, user_id, cur_id, pt_id, "group", amount - target as need, (amount - target) / rate as need_usd
  from fiat
-          inner join ptc p on p.id = fiat.ptc_id
+          inner join ptc p on p.id = fiat.ptc_id and NOT p.blocked
           inner join cur c on c.id = p.cur_id
           inner join pt p2 on p2.name = p.pt_id
  where target is not null
