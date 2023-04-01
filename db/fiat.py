@@ -49,6 +49,7 @@ fiat_cur_map: {} = {
     20449950: 'RUB',
     20405239: 'RUB',
     20376008: 'RUB',
+    32689223: 'RUB',
 }
 
 
@@ -61,7 +62,8 @@ async def upd_fiats():
         for pt in my_pts:
             if not (cur_id := fiat_cur_map.get(pt['id'])):
                 cur_id = input(f'Choose cur for user {user.id}{user.nickName} pt {pt["id"]}:{pt["identifier"]}')
-            dtl = pt['fields'][3 if pt['identifier'] == 'Advcash' else (2 if pt['identifier'] == 'Gcash' else 1)]['fieldValue']
+            field_index = 3 if pt['identifier'] == 'Advcash' else (2 if pt['identifier'] == 'Gcash' else (0 if pt['identifier'] == 'BinanceGiftCardRUB' else 1))
+            dtl = pt['fields'][field_index]['fieldValue']
             ptc, _ = await Ptc.get_or_create(pt_id=pt['identifier'], cur_id=cur_id)
             await Fiat.update_or_create({'user': user, 'ptc': ptc, 'detail': dtl}, id=pt['id'])
         await upd_fiat_spot_rates()

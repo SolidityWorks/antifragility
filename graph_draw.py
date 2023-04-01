@@ -16,11 +16,12 @@ async def graph():
     # nodes (id, size, group, title)
     cur_rates = {cur.id: cur.rate for cur in await Cur.filter(blocked=False)}
     coin_rates = {coin.id: coin.rate for coin in await Coin.all()}
-    node_replaces = {
-        'RUB': 'RUBfiatbalance'  # for merging RUB in found and fiat balances
+    node_replaces = {  # for merging RUB in found and fiat balances
+        'RUB': 'RUBfiatbalance',
+        # 'BinanceGiftCardRUB': 'RUBfiatbalance'
     }
     # todo: grouping users
-    cur_nodes: [(str, float)] = [(f'{fiat.ptc.cur_id}_{fiat.ptc.pt.group or fiat.ptc.pt_id}', 10*fiat.amount/cur_rates[fiat.ptc.cur_id], 'cur', fiat.amount) for fiat in fiats]  # todo sum amount in groups
+    cur_nodes: [(str, float)] = [(f'{fiat.ptc.cur_id}_{fiat.ptc.pt.group or fiat.ptc.pt_id}', 10*fiat.amount/cur_rates[fiat.ptc.cur_id], 'cur', fiat.amount) for fiat in fiats]  # if fiat.ptc.pt_id not in node_replaces]  # todo sum amount in groups
     coin_nodes: [(str, float)] = [(f'{a.coin_id}_BinanceP2P', 10*(amount := a.free + a.freeze)*coin_rates[a.coin_id]/cur_rates['RUB'], 'coin', amount) for a in await Asset.all().prefetch_related('coin') if a.coin_id not in node_replaces]  # todo: unHardcode 'BinanceP2P'
     nodes = cur_nodes + coin_nodes
     net.add_nodes(nodes)
