@@ -67,7 +67,7 @@ async def ad_proc(res: {}, pts_in: [(str,)] = None):
             user, cr = await User.update_or_create({'nickName': usr['nickName'], 'ex_id': 1}, uid=usr['userNo'])
 
             # check for old edges
-            if edges := await Adpt.filter(ad__pair_id=pair.id, pt_id__in=pts_new).prefetch_related('ad__pts'):
+            if edges := await Adpt.filter(ad__status=0, ad__pair_id=pair.id, pt_id__in=pts_new).prefetch_related('ad__pts'):
                 for edge in edges:
                     # if pair.coin_id == 'ETH' and edge.pt_id == 'TinkoffNew':
                     #     pass  # todo: remove the edge doubles
@@ -75,7 +75,7 @@ async def ad_proc(res: {}, pts_in: [(str,)] = None):
                         ad_del = await edge.ad.delete()  # then delete whole Ad
                     else:
                         e_del = await edge.delete()  # else delete only this edge from old Ad
-                # after todo: recording deleted edges for not updating next ads in cycle
+                # after todo: collect deleted edges for not updating next ads in cycle
 
             ad: Ad = await Ad.create(id=idd, pair=pair, user=user, **ad_upd)
 

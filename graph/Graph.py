@@ -13,12 +13,12 @@ class Out:
 
 
 class Graph:
-    def __init__(self, nodes: [str, float, any, any], edges: [str, str, float, any]):  # node(id, size, ..), edge(from, to, weight, ..)
+    def __init__(self, nodes: {str: [float, any, any]}, edges: {(str, str): (float, str)}):  # node{id: size, ..), edge{(from, to): (weight, ..))
         self.cycles: {(str,): float} = {}
         # Set initial nodes values
-        self.nodes: {str: Vertex} = {node[0]: Vertex(node[0]) for node in nodes}
+        self.nodes: {str: Vertex} = {node_key: Vertex(node_key) for node_key in nodes}
         # Connect this nodes with edges
-        [self.nodes[edge[0]].outs.append(Out(edge[1], edge[2])) for edge in edges]
+        [self.nodes[key[0]].outs.append(Out(key[1], edge[0])) for key, edge in edges.items()]
 
     def find_cycle(self, visit: [bool], start: str, source: str, summ: float, cycle: (str,)):
         if visit[start]:
