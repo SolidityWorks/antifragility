@@ -12,6 +12,12 @@ class Out:
         self.weight = weight
 
 
+def sfm(tup: tuple):  # start cycle from min
+    tup = tup[:-1]
+    i = tup.index(min(tup))
+    return tup[i:] + tup[:i]
+
+
 class Graph:
     def __init__(self, nodes: {str: [float, any, any]}, edges: {(str, str): (float, str)}):  # node{id: size, ..), edge{(from, to): (weight, ..))
         self.cycles: {(str,): float} = {}
@@ -22,8 +28,8 @@ class Graph:
 
     def find_cycle(self, visit: [bool], start: str, source: str, summ: float, cycle: (str,)):
         if visit[start]:
-            if start == source and summ > 1.001:
-                self.cycles[cycle] = summ
+            if start == source and summ > 1:
+                self.cycles[sfm(cycle)] = summ
             return
 
         # Here modified the value of visited node
@@ -42,7 +48,7 @@ class Graph:
             # Check cycle from and to node "node_key" with initial zero weight
             self.find_cycle(visit, node_key, node_key, 1, (node_key,))
 
-        return self.cycles
+        return dict(sorted(self.cycles.items(), key=lambda x: x[1]))
 
     def print_graph(self):
         for node in self.nodes.values():
